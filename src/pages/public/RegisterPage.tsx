@@ -1,5 +1,7 @@
+// src/pages/public/RegisterPage.tsx
 import React, { useState } from 'react';
-import { Check, AlertCircle, Building, Mail, Lock, Globe, MapPin } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { AlertCircle, Building, Mail, Lock, Globe, MapPin } from 'lucide-react';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Card } from '../../components/common/Card';
@@ -19,6 +21,7 @@ interface RegisterRequest {
 }
 
 export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState<RegisterRequest>({
     businessName: '',
     email: '',
@@ -29,7 +32,6 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -57,8 +59,10 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
       const response = await authService.register(formData);
       console.log('Registration response:', response);
 
-      setSuccess(true);
-      setTimeout(() => onNavigate('login'), 2000);
+      // Navigate to email verification page with email
+      navigate('/verify-email', { 
+        state: { email: formData.email }
+      });
     } catch (err: any) {
       let errorMessage = 'Registration failed. Please try again.';
       if (err.response) {
@@ -92,21 +96,6 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
   };
-
-  if (success) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center p-6">
-        <Card className="w-full max-w-md p-8 text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Check className="text-green-600" size={32} />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Registration Successful!</h2>
-          <p className="text-gray-600 mb-4">Your account has been created successfully.</p>
-          <p className="text-sm text-gray-500">Redirecting to login...</p>
-        </Card>
-      </div>
-    );
-  }
 
   const displayError = errors.general;
 

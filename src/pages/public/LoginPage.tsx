@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { GitMerge, AlertCircle, Mail, Lock } from 'lucide-react';
+// src/pages/public/LoginPage.tsx
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { GitMerge, AlertCircle, Mail, Lock, CheckCircle } from 'lucide-react';
 import { Button, Input, Card } from '../../components/common';
 import { authService } from '../../services/authService';
 import type { User } from '../../types/auth';
@@ -11,9 +12,21 @@ interface LoginPageProps {
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const state = location.state as { message?: string };
+  
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState(state?.message || '');
   const [loading, setLoading] = useState(false);
+
+  // Clear success message after 5 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => setSuccessMessage(''), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +44,20 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       if (err.response) {
         const status = err.response.status;
         if (status === 401 || status === 403) {
-          setError('Invalid email or password');
+          const message = err.response.data?.message || '';
+          
+          // Check if it's an email verification error
+          if (message.toLowerCase().includes('verify') || message.toLowerCase().includes('verification')) {
+            setError('Please verify your email before logging in.');
+            // Optionally redirect to verification page after 2 seconds
+            setTimeout(() => {
+              navigate('/verify-email', { 
+                state: { email: formData.email }
+              });
+            }, 2000);
+          } else {
+            setError('Invalid email or password');
+          }
         } else if (status === 500) {
           setError('Server error. Please try again later');
         } else {
@@ -58,6 +84,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
           <p className="text-gray-600">Sign in to your PayBridge account</p>
         </div>
+
+        {/* Success message */}
+        {successMessage && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700">
+            <CheckCircle size={20} />
+            <span className="text-sm">{successMessage}</span>
+          </div>
+        )}
 
         {/* Error message */}
         {error && (
@@ -114,7 +148,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         {/* Signup link */}
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
-            Don’t have an account?{' '}
+            Don't have an account?{' '}
             <button
               onClick={() => navigate('/register')}
               className="text-indigo-600 font-medium hover:underline"

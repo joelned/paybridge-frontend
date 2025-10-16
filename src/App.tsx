@@ -2,6 +2,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { LoginPage } from './pages/public/LoginPage';
 import { RegisterPage } from './pages/public/RegisterPage';
+import { EmailVerificationPage } from './pages/public/EmailVerificationPage';
 import { MerchantDashboard } from './pages/merchant/MerchantDashboard';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { LandingPage } from './pages/public/LandingPage';
@@ -44,7 +45,7 @@ function AppRoutes({
 }) {
   const navigate = useNavigate();
 
-  // 👇 Define this so LandingPage & LoginPage can navigate properly
+  // 👇 Define this so LandingPage can navigate properly
   const handleNavigate = (page: string) => {
     navigate(`/${page}`);
   };
@@ -59,6 +60,8 @@ function AppRoutes({
       />
 
       <Route path="/register" element={<RegisterPage onNavigate={handleNavigate} />} />
+
+      <Route path="/verify-email" element={<EmailVerificationPage />} />
 
       {/* Merchant Dashboard (Protected) */}
       <Route

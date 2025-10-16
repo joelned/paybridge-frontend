@@ -28,14 +28,29 @@ class AuthService {
     const response = await axiosInstance.post<RegisterResponse>('/merchants', registerData);
     const data = response.data;
 
-    // Optionally store token and user if backend returns them
-    if (data.token) {
-      localStorage.setItem(this.AUTH_TOKEN_KEY, data.token);
-      const user = data.user || this.parseJwtToken(data.token);
-      localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-    }
-
+    // Don't store token yet - user needs to verify email first
     return data;
+  }
+
+  /**
+   * Verify email with code
+   */
+  async verifyEmail(email: string, code: string): Promise<{ message: string }> {
+    const response = await axiosInstance.post('/auth/verify-email', { 
+      email, 
+      code 
+    });
+    return response.data;
+  }
+
+  /**
+   * Resend verification code
+   */
+  async resendVerificationCode(email: string): Promise<{ message: string }> {
+    const response = await axiosInstance.post('/auth/resend-verification', { 
+      email 
+    });
+    return response.data;
   }
 
   /**

@@ -1,0 +1,84 @@
+import React, { useState } from 'react';
+import { Activity, CreditCard, GitMerge, Link2, RefreshCw, BarChart3, Settings, LogOut, Menu } from 'lucide-react';
+import { Sidebar } from '../../components/layout/Sidebar';
+import { Header } from '../../components/layout/Header';
+import { OverviewTab } from './tabs/OverviewTab';
+import { PaymentsTab } from './tabs/PaymentTab';
+import { ProvidersTab } from './tabs/ProviderTab';
+import { PaymentLinksTab } from './tabs/PaymentLinksTab';
+import { ReconciliationTab } from './tabs/ReconciliationTab';
+import { AnalyticsTab } from './tabs/AnalyticsTab';
+import { SettingsTab } from './tabs/SettingsTab';
+import { type User } from '../../types';
+
+interface MenuItem {
+  id: string;
+  label: string;
+  icon: React.ComponentType<any>;
+}
+
+interface MerchantDashboardProps {
+  userData: User;
+  onLogout: () => void;
+}
+
+export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({ userData, onLogout }) => {
+  const [activeTab, setActiveTab] = useState('overview');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const menuItems: MenuItem[] = [
+    { id: 'overview', label: 'Overview', icon: Activity },
+    { id: 'payments', label: 'Payments', icon: CreditCard },
+    { id: 'providers', label: 'Providers', icon: GitMerge },
+    { id: 'paymentlinks', label: 'Payment Links', icon: Link2 },
+    { id: 'reconciliation', label: 'Reconciliation', icon: RefreshCw },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: 'settings', label: 'Settings', icon: Settings }
+  ];
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return <OverviewTab />;
+      case 'payments':
+        return <PaymentsTab />;
+      case 'providers':
+        return <ProvidersTab />;
+      case 'paymentlinks':
+        return <PaymentLinksTab />;
+      case 'reconciliation':
+        return <ReconciliationTab />;
+      case 'analytics':
+        return <AnalyticsTab />;
+      case 'settings':
+        return <SettingsTab userData={userData} />;
+      default:
+        return <OverviewTab />;
+    }
+  };
+
+  return (
+    <div className="flex h-screen bg-gray-50">
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        sidebarOpen={sidebarOpen}
+        setSidebarOpen={setSidebarOpen}
+        menuItems={menuItems}
+        onLogout={onLogout}
+      />
+
+      <main className="flex-1 overflow-auto">
+        <Header 
+          activeTab={activeTab} 
+          menuItems={menuItems} 
+          userEmail={userData.email} 
+        />
+
+        <div className="p-8">
+          {renderTabContent()}
+        </div>
+      </main>
+    </div>
+  );
+};

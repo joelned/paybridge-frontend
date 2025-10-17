@@ -7,11 +7,46 @@ import type { Provider } from '../../../types';
 
 export const ProvidersTab: React.FC = () => {
   const [providers, setProviders] = useState<Provider[]>([
-    { id: 1, name: 'Stripe', enabled: true, logo: '💳', color: '#635BFF', apiKey: 'sk_live_51H...', transactions: 543, volume: '$45,234' },
-    { id: 2, name: 'PayPal', enabled: true, logo: '💰', color: '#00457C', apiKey: 'AZaQ...', transactions: 412, volume: '$38,129' },
-    { id: 3, name: 'Flutterwave', enabled: true, logo: '🦋', color: '#F5A623', apiKey: 'FLWSECK...', transactions: 329, volume: '$41,200' },
-    { id: 4, name: 'Paystack', enabled: false, logo: '💎', color: '#00C3F7', apiKey: '', transactions: 0, volume: '$0' },
-    { id: 5, name: 'Razorpay', enabled: false, logo: '⚡', color: '#3395FF', apiKey: '', transactions: 0, volume: '$0' }
+    { 
+      id: 1, 
+      name: 'Stripe', 
+      enabled: true, 
+      logo: 'https://logo.clearbit.com/stripe.com', 
+      color: '#635BFF', 
+      apiKey: 'sk_live_51H...', 
+      transactions: 543, 
+      volume: '$45,234' 
+    },
+    { 
+      id: 2, 
+      name: 'PayPal', 
+      enabled: true, 
+      logo: 'https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg', 
+      color: '#00457C', 
+      apiKey: 'AZaQ...', 
+      transactions: 412, 
+      volume: '$38,129' 
+    },
+    { 
+      id: 3, 
+      name: 'Flutterwave', 
+      enabled: true, 
+      logo: 'https://upload.wikimedia.org/wikipedia/commons/9/9e/Flutterwave_Logo.png', 
+      color: '#F5A623', 
+      apiKey: 'FLWSECK...', 
+      transactions: 329, 
+      volume: '$41,200' 
+    },
+    { 
+      id: 4, 
+      name: 'Paystack', 
+      enabled: false, 
+      logo: 'https://static.cdnlogo.com/logos/p/27/paystack.svg', 
+      color: '#00C3F7', 
+      apiKey: '', 
+      transactions: 0, 
+      volume: '$0' 
+    }
   ]);
 
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
@@ -37,7 +72,13 @@ export const ProvidersTab: React.FC = () => {
           <Card key={provider.id} className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="text-3xl">{provider.logo}</div>
+                <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-gray-100">
+                  <img 
+                    src={provider.logo} 
+                    alt={`${provider.name} logo`}
+                    className="w-8 h-8 object-contain"
+                  />
+                </div>
                 <div>
                   <h3 className="font-semibold text-gray-900">{provider.name}</h3>
                   <Badge variant={provider.enabled ? 'success' : 'default'}>

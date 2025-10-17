@@ -1,7 +1,7 @@
 // src/pages/public/EmailVerificationPage.tsx
 import React, { useState, useRef, useEffect, type KeyboardEvent, type ClipboardEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { GitMerge, Mail, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { Mail, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { Button } from '../../components/common/Button';
 import { Card } from '../../components/common/Card';
 import { authService } from '../../services/authService';
@@ -20,7 +20,7 @@ export const EmailVerificationPage: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
-  const [timeRemaining, setTimeRemaining] = useState(300); // 5 minutes in seconds
+  const [timeRemaining, setTimeRemaining] = useState(600); // 10 minutes in seconds
   
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const email = state?.email || '';
@@ -136,16 +136,22 @@ export const EmailVerificationPage: React.FC = () => {
       }, 2000);
     } catch (err: any) {
       if (err.response) {
-        const status = err.response.status;
-        if (status === 400) {
-          setError('Invalid verification code. Please try again.');
-        } else if (status === 410) {
+        const message = err.response.data?.message || 'Verification failed';
+        
+        // Check the actual message content instead of status codes
+        if (message.includes('expired')) {
           setError('Verification code has expired. Please request a new one.');
           setTimeRemaining(0);
-        } else if (status === 429) {
-          setError('Too many attempts. Please try again later.');
+        } else if (message.includes('Too many verification attempts')) {
+          setError('Too many attempts. Please request a new code.');
+        } else if (message.includes('Invalid verification code')) {
+          setError('Invalid verification code. Please try again.');
+        } else if (message.includes('already verified')) {
+          setError('Email is already verified. Please log in.');
+        } else if (message.includes('No account found')) {
+          setError('No account found with this email. Please register again.');
         } else {
-          setError(err.response.data?.message || 'Verification failed');
+          setError(message);
         }
       } else {
         setError('Cannot connect to server. Please check your connection.');
@@ -167,19 +173,30 @@ export const EmailVerificationPage: React.FC = () => {
 
     try {
       await authService.resendVerificationCode(email);
-      setResendCooldown(60);
-      setTimeRemaining(300); // Reset to 5 minutes
+      setResendCooldown(60); // 1 minute cooldown
+      setTimeRemaining(900); // Reset to 15 minutes
       setCode(['', '', '', '', '', '']);
-      inputRefs.current[0]?.focus();
       
-      // Show success message briefly
-      setError('');
-      const successMsg = document.createElement('div');
-      successMsg.className = 'text-green-600 text-sm text-center mb-4';
-      successMsg.textContent = 'New verification code sent!';
+      // Show success message
+      setError(''); // Clear any errors
+      const successMessage = 'New verification code sent! Check your email.';
+      setError(successMessage); // Using error state for success message temporarily
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        if (error === successMessage) {
+          setError('');
+        }
+      }, 3000);
+      
+      inputRefs.current[0]?.focus();
     } catch (err: any) {
-      if (err.response?.status === 429) {
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else if (err.response?.status === 429) {
         setError('Too many requests. Please wait before requesting another code.');
+      } else if (err.response?.status === 400) {
+        setError(err.response.data?.message || 'Failed to resend code. Please try again.');
       } else {
         setError('Failed to resend code. Please try again.');
       }
@@ -234,11 +251,19 @@ export const EmailVerificationPage: React.FC = () => {
           </div>
         )}
 
-        {/* Error Message */}
+        {/* Error/Success Message */}
         {error && (
-          <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
-            <AlertCircle size={20} />
-            <span className="text-sm">{error}</span>
+          <div className={`mb-6 p-3 rounded-lg flex items-center gap-2 text-sm ${
+            error.includes('sent!') 
+              ? 'bg-green-50 border border-green-200 text-green-700'
+              : 'bg-red-50 border border-red-200 text-red-700'
+          }`}>
+            {error.includes('sent!') ? (
+              <CheckCircle size={20} />
+            ) : (
+              <AlertCircle size={20} />
+            )}
+            <span>{error}</span>
           </div>
         )}
 
@@ -264,7 +289,7 @@ export const EmailVerificationPage: React.FC = () => {
                 disabled={loading || timeRemaining <= 0}
                 className={`w-12 h-14 text-center text-2xl font-bold border-2 rounded-lg transition-all
                   ${digit ? 'border-indigo-600 bg-indigo-50' : 'border-gray-300'}
-                  ${error ? 'border-red-500' : ''}
+                  ${error && !error.includes('sent!') ? 'border-red-500' : ''}
                   focus:border-indigo-600 focus:ring-2 focus:ring-indigo-200 focus:outline-none
                   disabled:bg-gray-100 disabled:cursor-not-allowed
                 `}
@@ -309,7 +334,7 @@ export const EmailVerificationPage: React.FC = () => {
         <div className="mt-6 pt-6 border-t border-gray-200 text-center">
           <button
             onClick={() => navigate('/register')}
-            className="text-sm text-gray-600 hover:text-gray-900"
+            className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
             disabled={loading}
           >
             ← Back to registration

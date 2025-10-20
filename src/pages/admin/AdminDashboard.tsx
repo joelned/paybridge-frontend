@@ -2,6 +2,8 @@ import React from 'react';
 import { Shield, LogOut, Users, DollarSign, Settings, Activity } from 'lucide-react';
 import { Button } from '../../components/common/Button';
 import { Card } from '../../components/common/Card';
+import { Container } from '../../components/layout/Container';
+import { SectionHeader } from '../../components/section/SectionHeader';
 import { Badge } from '../../components/common/Badge';
 import { StatCard } from '../../components/common/StatCard';
 import { type User } from '../../types';
@@ -27,64 +29,102 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ userData, onLogo
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <nav className="bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/70 border-b border-gray-200 sticky top-0 z-40">
+        <Container className="py-3 sm:py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <Shield className="text-white" size={24} />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center shadow-sm">
+              <Shield className="text-white" size={20} />
             </div>
             <div>
-              <span className="text-xl font-bold">PayBridge Admin</span>
-              <p className="text-xs text-gray-600">{userData.email}</p>
+              <span className="text-lg sm:text-xl font-bold">PayBridge Admin</span>
+              <p className="text-xs text-gray-600 hidden sm:block">{userData.email}</p>
             </div>
           </div>
-          <Button variant="outline" onClick={onLogout} icon={LogOut}>Logout</Button>
-        </div>
+          <Button variant="outline" onClick={onLogout} icon={LogOut} size="sm">
+            <span className="hidden sm:inline">Logout</span>
+            <span className="sm:hidden">Exit</span>
+          </Button>
+        </Container>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-600 mt-2">Monitor and manage the PayBridge platform</p>
-        </div>
+      <Container className="py-6 sm:py-8">
+        <SectionHeader
+          title="Admin Dashboard"
+          subtitle="Monitor and manage the PayBridge platform"
+          className="mb-6 sm:mb-8"
+        />
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {stats.map((stat, idx) => (
             <StatCard key={idx} {...stat} />
           ))}
         </div>
 
-        <Card className="mb-8">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">All Merchants</h2>
+        <Card className="mb-6 sm:mb-8">
+          <div className="p-4 sm:p-6 border-b border-gray-200">
+            <SectionHeader title="All Merchants" subtitle="System-wide merchant overview" />
           </div>
-          <div className="overflow-x-auto">
+          
+          {/* Mobile Card View */}
+          <div className="lg:hidden divide-y divide-gray-200">
+            {merchants.map((merchant) => (
+              <div key={merchant.id} className="p-4 space-y-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="font-semibold text-gray-900">{merchant.name}</p>
+                    <p className="text-sm text-gray-600">{merchant.email}</p>
+                  </div>
+                  <Badge variant={merchant.status === 'ACTIVE' ? 'success' : 'warning'}>
+                    {merchant.status}
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-gray-600">Volume:</span>
+                    <p className="font-semibold text-gray-900">{merchant.volume}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Providers:</span>
+                    <p className="font-semibold text-gray-900">{merchant.providers}</p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Joined:</span>
+                    <p className="text-gray-900">{merchant.joined}</p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" className="w-full">Manage</Button>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Business</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Volume</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Providers</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Business</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Volume</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Providers</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                 {merchants.map((merchant) => (
                   <tr key={merchant.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{merchant.name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{merchant.email}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-3 text-sm font-medium text-gray-900">{merchant.name}</td>
+                    <td className="px-6 py-3 text-sm text-gray-600">{merchant.email}</td>
+                    <td className="px-6 py-3">
                       <Badge variant={merchant.status === 'ACTIVE' ? 'success' : 'warning'}>
                         {merchant.status}
                       </Badge>
                     </td>
-                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">{merchant.volume}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{merchant.providers}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{merchant.joined}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-3 text-sm font-semibold text-gray-900">{merchant.volume}</td>
+                    <td className="px-6 py-3 text-sm text-gray-900">{merchant.providers}</td>
+                    <td className="px-6 py-3 text-sm text-gray-600">{merchant.joined}</td>
+                    <td className="px-6 py-3">
                       <Button variant="ghost" size="sm">Manage</Button>
                     </td>
                   </tr>
@@ -93,7 +133,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ userData, onLogo
             </table>
           </div>
         </Card>
-      </div>
+      </Container>
     </div>
   );
 };

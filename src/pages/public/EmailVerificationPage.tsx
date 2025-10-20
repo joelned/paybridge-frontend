@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Mail, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { Button } from '../../components/common/Button';
 import { Card } from '../../components/common/Card';
+import { InlineAlert } from '../../components/feedback/InlineAlert';
 import { authService } from '../../services/authService';
 
 interface LocationState {
@@ -253,18 +254,11 @@ export const EmailVerificationPage: React.FC = () => {
 
         {/* Error/Success Message */}
         {error && (
-          <div className={`mb-6 p-3 rounded-lg flex items-center gap-2 text-sm ${
-            error.includes('sent!') 
-              ? 'bg-green-50 border border-green-200 text-green-700'
-              : 'bg-red-50 border border-red-200 text-red-700'
-          }`}>
-            {error.includes('sent!') ? (
-              <CheckCircle size={20} />
-            ) : (
-              <AlertCircle size={20} />
-            )}
-            <span>{error}</span>
-          </div>
+          error.includes('sent!') ? (
+            <InlineAlert variant="success" icon={CheckCircle} className="mb-6">{error}</InlineAlert>
+          ) : (
+            <InlineAlert variant="error" icon={AlertCircle} className="mb-6">{error}</InlineAlert>
+          )
         )}
 
         {/* Code Input Boxes */}

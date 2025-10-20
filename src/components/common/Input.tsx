@@ -20,10 +20,13 @@ export const Input: React.FC<InputProps> = ({
   required = false,
   ...props
 }) => {
+  const inputId = (props.id as string) || (props.name as string) || undefined;
+  const hintId = hint && inputId ? `${inputId}-hint` : undefined;
+  const errorId = error && inputId ? `${inputId}-error` : undefined;
   return (
     <div className="mb-4">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor={inputId}>
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
@@ -37,6 +40,9 @@ export const Input: React.FC<InputProps> = ({
           {...props}
           required={required}
           disabled={disabled}
+          id={inputId}
+          aria-invalid={!!error || undefined}
+          aria-describedby={[hintId, errorId].filter(Boolean).join(' ') || undefined}
           className={`
             w-full px-4 py-2.5 
             ${Icon ? 'pl-10' : ''} 
@@ -49,8 +55,12 @@ export const Input: React.FC<InputProps> = ({
           `}
         />
       </div>
-      {hint && !error && <p className="mt-1 text-xs text-gray-500">{hint}</p>}
-      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      {hint && !error && (
+        <p id={hintId} className="mt-1 text-xs text-gray-500">{hint}</p>
+      )}
+      {error && (
+        <p id={errorId} role="alert" className="mt-1 text-sm text-red-600">{error}</p>
+      )}
     </div>
   );
 };

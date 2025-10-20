@@ -1,10 +1,11 @@
 // src/pages/public/RegisterPage.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, Building, Mail, Lock, Globe, MapPin } from 'lucide-react';
+import { AlertCircle, Building, Mail, Lock, Globe, MapPin, GitMerge } from 'lucide-react';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { Card } from '../../components/common/Card';
+import { InlineAlert } from '../../components/feedback/InlineAlert';
 import { authService } from '../../services/authService';
 
 interface RegisterPageProps {
@@ -56,10 +57,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
     setErrors({});
 
     try {
-      const response = await authService.register(formData);
-      console.log('Registration response:', response);
-
-      // Navigate to email verification page with email
+      await authService.register(formData);
       navigate('/verify-email', { 
         state: { email: formData.email }
       });
@@ -100,24 +98,25 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
   const displayError = errors.general;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center p-6">
-      <Card className="w-full max-w-2xl p-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Your Account</h1>
-          <p className="text-gray-600">Start orchestrating payments in minutes</p>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center p-4 sm:p-6">
+      <Card padding="lg" variant="soft" className="w-full max-w-2xl">
+        {/* Logo and Back Button */}
+
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Create Your Account</h1>
+          <p className="text-sm sm:text-base text-gray-600">Start orchestrating payments in minutes</p>
         </div>
 
         {displayError && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
-            <AlertCircle size={20} />
-            <span className="text-sm">{displayError}</span>
-          </div>
+          <InlineAlert variant="error" icon={AlertCircle}>{displayError}</InlineAlert>
         )}
 
         <form onSubmit={handleSubmit}>
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
             <Input
               label="Business Name"
+              name="businessName"
+              id="businessName"
               value={formData.businessName}
               onChange={(e) => handleInputChange('businessName')(e.target.value)}
               placeholder="Acme Corp"
@@ -129,6 +128,8 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
             <Input
               label="Email"
               type="email"
+              name="email"
+              id="email"
               value={formData.email}
               onChange={(e) => handleInputChange('email')(e.target.value)}
               placeholder="you@business.com"
@@ -142,6 +143,8 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
           <Input
             label="Password"
             type="password"
+            name="password"
+            id="password"
             value={formData.password}
             onChange={(e) => handleInputChange('password')(e.target.value)}
             placeholder="Min. 8 characters"
@@ -151,8 +154,8 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
             icon={Lock}
           />
 
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
+          <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Business Type <span className="text-red-500">*</span>
               </label>
@@ -178,6 +181,8 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
 
             <Input
               label="Country Code"
+              name="businessCountry"
+              id="businessCountry"
               value={formData.businessCountry}
               onChange={(e) => handleInputChange('businessCountry')(e.target.value)}
               placeholder="NG"
@@ -191,6 +196,8 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
           <Input
             label="Website URL (Optional)"
             type="url"
+            name="websiteUrl"
+            id="websiteUrl"
             value={formData.websiteUrl}
             onChange={(e) => handleInputChange('websiteUrl')(e.target.value)}
             placeholder="https://yourbusiness.com"
@@ -198,8 +205,8 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
             icon={Globe}
           />
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Creating Account...' : 'Create Account'}
+          <Button type="submit" className="w-full" disabled={loading} loading={loading}>
+            Create Account
           </Button>
         </form>
 

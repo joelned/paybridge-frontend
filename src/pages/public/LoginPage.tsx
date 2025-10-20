@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { GitMerge, AlertCircle, Mail, Lock, CheckCircle } from 'lucide-react';
 import { Button, Input, Card } from '../../components/common';
+import { InlineAlert } from '../../components/feedback/InlineAlert';
 import { authService } from '../../services/authService';
 import type { User } from '../../types/auth';
 
@@ -20,7 +21,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const [successMessage, setSuccessMessage] = useState(state?.message || '');
   const [loading, setLoading] = useState(false);
 
-  // Clear success message after 5 seconds
   useEffect(() => {
     if (successMessage) {
       const timer = setTimeout(() => setSuccessMessage(''), 5000);
@@ -30,14 +30,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
 
     try {
       const { user } = await authService.login(formData.email, formData.password);
       onLogin(user);
 
-      // Navigate to appropriate dashboard based on role
       const target = user.userType === 'ADMIN' ? '/admin' : '/merchant';
       navigate(target);
     } catch (err: any) {
@@ -46,10 +44,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         if (status === 401 || status === 403) {
           const message = err.response.data?.message || '';
           
-          // Check if it's an email verification error
           if (message.toLowerCase().includes('verify') || message.toLowerCase().includes('verification')) {
             setError('Please verify your email before logging in.');
-            // Optionally redirect to verification page after 2 seconds
             setTimeout(() => {
               navigate('/verify-email', { 
                 state: { email: formData.email }
@@ -74,38 +70,38 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center p-6">
-      <Card className="w-full max-w-md p-8">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center p-4 sm:p-6">
+      <Card padding="lg" variant="soft" interactive className="w-full max-w-md sm:max-w-lg">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <GitMerge className="text-white" size={32} />
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4 shadow-lg ring-1 ring-black/5">
+            <GitMerge className="text-white" size={28} />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-          <p className="text-gray-600">Sign in to your PayBridge account</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
+          <p className="text-sm sm:text-base text-gray-600">Sign in to your PayBridge account</p>
         </div>
 
         {/* Success message */}
         {successMessage && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700">
-            <CheckCircle size={20} />
-            <span className="text-sm">{successMessage}</span>
-          </div>
+          <InlineAlert variant="success" icon={CheckCircle}>
+            {successMessage}
+          </InlineAlert>
         )}
 
         {/* Error message */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
-            <AlertCircle size={20} />
-            <span className="text-sm">{error}</span>
-          </div>
+          <InlineAlert variant="error" icon={AlertCircle}>
+            {error}
+          </InlineAlert>
         )}
 
         {/* Login Form */}
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="space-y-3">
           <Input
             label="Email"
             type="email"
+            name="email"
+            id="email"
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             placeholder="you@example.com"
@@ -118,6 +114,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           <Input
             label="Password"
             type="password"
+            name="password"
+            id="password"
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
             placeholder="••••••••"
@@ -127,19 +125,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             icon={Lock}
           />
 
-          <div className="flex items-center justify-between text-sm mb-4">
-            <label className="flex items-center gap-2 text-gray-600">
-              <input type="checkbox" className="rounded" />
-              Remember me
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm mb-2 pt-1">
+            <label className="flex items-center gap-2 text-gray-600 cursor-pointer">
+              <input type="checkbox" className="rounded w-4 h-4" />
+              <span>Remember me</span>
             </label>
             <button
               type="button"
-              className="text-indigo-600 hover:text-indigo-700 font-medium"
+              className="text-indigo-600 hover:text-indigo-700 font-medium text-left sm:text-right"
             >
               Forgot password?
             </button>
           </div>
-
           <Button type="submit" className="w-full" loading={loading} disabled={loading}>
             Sign In
           </Button>

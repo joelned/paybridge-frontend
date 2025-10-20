@@ -63,9 +63,9 @@ export const OverviewTab: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Stats */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {stats.map((stat, idx) => (
           <StatCard key={idx} {...stat} />
         ))}
@@ -73,25 +73,26 @@ export const OverviewTab: React.FC = () => {
 
       {/* Provider Performance Cards */}
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Provider Performance</h3>
-        <div className="grid md:grid-cols-3 gap-6">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Provider Performance</h3>
+        <p className="text-xs text-gray-500 mb-3 sm:mb-4">Last 7 days</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {providerStats.map((stat, idx) => (
-            <Card key={idx} className="p-6">
-              <div className="flex items-center justify-between mb-4">
+            <Card key={idx} padding="lg" variant="soft" className="">
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
                 <h4 className="font-semibold text-gray-900">{stat.provider}</h4>
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: stat.color }}></div>
               </div>
               <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Volume</span>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Volume</span>
                   <span className="font-semibold text-gray-900">{stat.volume}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Transactions</span>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Transactions</span>
                   <span className="font-semibold text-gray-900">{stat.transactions}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Success Rate</span>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Success Rate</span>
                   <span className="font-semibold text-green-600">{stat.successRate}</span>
                 </div>
               </div>
@@ -101,36 +102,38 @@ export const OverviewTab: React.FC = () => {
       </div>
 
       {/* Charts and Recent Transactions */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue by Provider</h3>
-          <ResponsiveContainer width="100%" height={300}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <Card padding="lg" className="">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Revenue by Provider</h3>
+          <div className="h-56 sm:h-64 lg:h-72">
+            <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="name" stroke="#888" />
-              <YAxis stroke="#888" />
+              <XAxis dataKey="name" stroke="#888" style={{ fontSize: '12px' }} />
+              <YAxis stroke="#888" style={{ fontSize: '12px' }} />
               <Tooltip />
               <Bar dataKey="stripe" fill="#6366f1" radius={[4, 4, 0, 0]} />
               <Bar dataKey="paypal" fill="#10b981" radius={[4, 4, 0, 0]} />
               <Bar dataKey="flutterwave" fill="#f59e0b" radius={[4, 4, 0, 0]} />
             </BarChart>
-          </ResponsiveContainer>
+            </ResponsiveContainer>
+          </div>
         </Card>
 
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Recent Transactions</h3>
-            <button className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">View All</button>
+        <Card padding="lg" className="">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900">Recent Transactions</h3>
+            <button className="text-indigo-600 hover:underline text-xs sm:text-sm font-medium" aria-label="View all recent transactions">View all</button>
           </div>
-          <div className="space-y-4">
-            {recentTransactions.map((txn) => (
-              <div key={txn.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex-1">
-                  <p className="font-medium text-gray-900 text-sm">{txn.customer}</p>
-                  <p className="text-xs text-gray-600">{txn.provider} • {txn.date}</p>
+          <div className="divide-y divide-gray-200 dark:divide-gray-800 rounded-lg border border-gray-100 dark:border-gray-800">
+            {recentTransactions.map((txn, idx) => (
+              <div key={txn.id} className={`flex items-center justify-between p-3 ${idx === 0 ? 'rounded-t-lg' : ''} ${idx === recentTransactions.length - 1 ? 'rounded-b-lg' : ''}`}>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 text-xs sm:text-sm truncate">{txn.customer}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{txn.provider} • {txn.date}</p>
                 </div>
-                <div className="text-right">
-                  <p className="font-semibold text-gray-900">{txn.amount}</p>
+                <div className="text-right ml-3">
+                  <p className="font-semibold text-gray-900 text-sm">{txn.amount}</p>
                   <Badge variant={txn.status === 'SUCCEEDED' ? 'success' : 'warning'}>
                     {txn.status}
                   </Badge>

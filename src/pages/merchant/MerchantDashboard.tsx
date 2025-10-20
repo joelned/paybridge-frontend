@@ -58,7 +58,7 @@ export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({ userData, 
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100/50">
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -68,15 +68,17 @@ export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({ userData, 
         onLogout={onLogout}
       />
 
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto flex flex-col">
         <Header 
           activeTab={activeTab} 
           menuItems={menuItems} 
           userEmail={userData.email} 
         />
 
-        <div className="p-8">
-          {renderTabContent()}
+        <div className="flex-1 p-6 lg:p-8 max-w-7xl mx-auto w-full">
+          <div className="animate-fadeIn">
+            {renderTabContent()}
+          </div>
         </div>
       </main>
     </div>

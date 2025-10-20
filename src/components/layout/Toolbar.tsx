@@ -7,7 +7,7 @@ interface ToolbarProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export const Toolbar: React.FC<ToolbarProps> = ({ children, className = '', ...props }) => {
   return (
-    <div {...props} className={`flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center ${className}`}>
+    <div {...props} className={`grid gap-3 md:grid-cols-[1fr_auto_auto] items-center ${className}`}>
       {children}
     </div>
   );

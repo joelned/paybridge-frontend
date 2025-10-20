@@ -10,28 +10,28 @@ interface InlineAlertProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const variantClasses: Record<Variant, string> = {
-  success: 'bg-success-50 border border-success-200 text-success-800',
-  error: 'bg-error-50 border border-error-200 text-error-800',
-  warning: 'bg-warning-50 border border-warning-200 text-warning-800',
-  info: 'bg-primary-50 border border-primary-200 text-primary-800',
+  success: 'bg-green-50 border border-green-200 text-green-700',
+  error: 'bg-red-50 border border-red-200 text-red-700',
+  warning: 'bg-yellow-50 border border-yellow-200 text-yellow-700',
+  info: 'bg-blue-50 border border-blue-200 text-blue-700',
 };
 
-const iconClasses: Record<Variant, string> = {
-  success: 'text-success-600',
-  error: 'text-error-600',
-  warning: 'text-warning-600',
-  info: 'text-primary-600',
+const defaultIcons: Record<Variant, string> = {
+  success: 'check-circle',
+  error: 'alert-circle',
+  warning: 'alert-triangle',
+  info: 'info',
 };
 
 export const InlineAlert: React.FC<InlineAlertProps> = ({ variant = 'info', icon: Icon, children, className = '', ...props }) => {
   const role = variant === 'success' || variant === 'info' ? 'status' : 'alert';
   const ariaLive = variant === 'success' || variant === 'info' ? 'polite' : 'assertive';
   return (
-    <div {...props} role={role} aria-live={ariaLive} className={`mb-4 p-4 rounded-xl flex items-start gap-3 text-sm font-medium animate-fadeIn ${variantClasses[variant]} ${className}`}>
+    <div {...props} role={role} aria-live={ariaLive} className={`mb-4 p-3 rounded-lg flex items-start gap-2 text-sm ${variantClasses[variant]} ${className}`}>
       {Icon && (
-        <Icon size={20} className={`flex-shrink-0 mt-0.5 ${iconClasses[variant]}`} />
+        <Icon size={20} className="flex-shrink-0 mt-0.5" />
       )}
-      <div className="flex-1 leading-relaxed">{children}</div>
+      <span>{children}</span>
     </div>
   );
 };

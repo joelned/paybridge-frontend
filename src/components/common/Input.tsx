@@ -24,16 +24,16 @@ export const Input: React.FC<InputProps> = ({
   const hintId = hint && inputId ? `${inputId}-hint` : undefined;
   const errorId = error && inputId ? `${inputId}-error` : undefined;
   return (
-    <div className="mb-5">
+    <div className="mb-4">
       {label && (
-        <label className="block text-sm font-medium text-gray-900 mb-2" htmlFor={inputId}>
-          {label} {required && <span className="text-error-500 ml-1">*</span>}
+        <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor={inputId}>
+          {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
       <div className="relative">
         {Icon && (
-          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
-            <Icon size={18} />
+          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+            <Icon size={20} />
           </div>
         )}
         <input
@@ -44,27 +44,22 @@ export const Input: React.FC<InputProps> = ({
           aria-invalid={!!error || undefined}
           aria-describedby={[hintId, errorId].filter(Boolean).join(' ') || undefined}
           className={`
-            w-full px-4 py-3 
-            ${Icon ? 'pl-11' : ''} 
+            w-full px-4 py-2.5 
+            ${Icon ? 'pl-10' : ''} 
             border rounded-lg 
-            focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 
-            transition-all duration-200
-            placeholder:text-gray-400
-            text-gray-900
-            ${error 
-              ? 'border-error-300 bg-error-50/50 focus:border-error-500 focus:ring-error-500/20' 
-              : 'border-gray-300 bg-white hover:border-gray-400'
-            }
-            ${disabled ? 'bg-gray-50 cursor-not-allowed opacity-60 text-gray-500' : ''}
+            focus:ring-2 focus:ring-indigo-500 focus:border-transparent 
+            transition-all
+            ${error ? 'border-red-500' : 'border-gray-300'}
+            ${disabled ? 'bg-gray-50 cursor-not-allowed opacity-60' : 'bg-white'}
             ${className}
           `}
         />
       </div>
       {hint && !error && (
-        <p id={hintId} className="mt-2 text-sm text-gray-600">{hint}</p>
+        <p id={hintId} className="mt-1 text-xs text-gray-500">{hint}</p>
       )}
       {error && (
-        <p id={errorId} role="alert" className="mt-2 text-sm text-error-600 font-medium">{error}</p>
+        <p id={errorId} role="alert" className="mt-1 text-sm text-red-600">{error}</p>
       )}
     </div>
   );

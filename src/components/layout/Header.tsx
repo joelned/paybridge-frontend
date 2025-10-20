@@ -11,34 +11,33 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ activeTab, menuItems, userEmail }) => {
   const title = menuItems.find(item => item.id === activeTab)?.label;
   return (
-    <header className="bg-white/95 backdrop-blur-sm supports-[backdrop-filter]:bg-white/90 border-b border-gray-200 sticky top-0 z-40">
-      <div className="px-6 lg:px-8 py-6 flex items-center justify-between max-w-7xl mx-auto">
-        <div className="flex-1 min-w-0 pr-6">
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight truncate mb-1">
+    <header className="bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/70 border-b border-gray-200">
+      <div className="px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between max-w-7xl mx-auto">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-lg sm:text-2xl font-semibold sm:font-bold text-gray-900 tracking-tight truncate">
             {title}
           </h1>
-          <p className="text-sm text-gray-600 truncate">
-            Welcome back, <span className="font-medium text-gray-900">{userEmail.split('@')[0]}</span>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1 truncate">
+            Welcome back, {userEmail}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2 ml-4">
           <Button 
             variant="ghost" 
             size="sm"
-            className="relative px-3 py-2 hover:bg-gray-50 focus:ring-2 focus:ring-primary-500/20 transition-all duration-200 rounded-lg"
+            className="p-2 sm:px-3 hover:bg-gray-100/80"
             aria-label="Notifications"
           >
-            <Bell size={18} className="text-gray-500" />
-            <span className="hidden sm:inline ml-2 text-gray-700 font-medium text-sm">Notifications</span>
-            <span className="absolute -top-1 -right-1 w-2 h-2 bg-error-500 rounded-full ring-2 ring-white"></span>
+            <Bell size={18} />
+            <span className="hidden sm:inline ml-2">Notifications</span>
           </Button>
           <Button 
             variant="ghost" 
             size="sm"
-            className="p-2 hover:bg-gray-50 rounded-lg focus:ring-2 focus:ring-primary-500/20 transition-all duration-200"
-            aria-label="Account menu"
+            className="p-2 hover:bg-gray-100/80 rounded-full"
+            aria-label="Account"
           >
-            <User size={18} className="text-gray-500" />
+            <User size={18} />
           </Button>
         </div>
       </div>

@@ -43,22 +43,22 @@ export const PaymentsTab: React.FC = () => {
         actions={<Button icon={Plus} onClick={() => setShowCreateModal(true)}>Create Payment</Button>}
       />
 
-      <Card padding="lg">
+      <Card padding="md" variant="soft" className="">
         <Toolbar>
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
             <input
               type="text"
               placeholder="Search by customer or ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 bg-white"
+            className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
           >
             <option value="all">All Statuses</option>
             <option value="SUCCEEDED">Succeeded</option>
@@ -73,31 +73,31 @@ export const PaymentsTab: React.FC = () => {
       <Card>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-25 border-b border-gray-200">
+            <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Payment ID</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Customer</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Provider</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment ID</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Provider</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
               {filteredPayments.map((payment) => (
-                <tr key={payment.id} className="hover:bg-gray-25 transition-colors">
-                  <td className="px-6 py-4 text-sm font-mono text-gray-900">{payment.id}</td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{payment.customer}</td>
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-900">{payment.amount}</td>
-                  <td className="px-6 py-4">
+                <tr key={payment.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-3 text-sm font-mono text-gray-900">{payment.id}</td>
+                  <td className="px-6 py-3 text-sm text-gray-900">{payment.customer}</td>
+                  <td className="px-6 py-3 text-sm font-semibold text-gray-900">{payment.amount}</td>
+                  <td className="px-6 py-3">
                     <Badge variant={statusColors[payment.status] as any}>
                       {payment.status}
                     </Badge>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">{payment.provider}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{payment.date}</td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-3 text-sm text-gray-900">{payment.provider}</td>
+                  <td className="px-6 py-3 text-sm text-gray-600">{payment.date}</td>
+                  <td className="px-6 py-3">
                     <Button variant="ghost" size="sm" icon={Eye}>View</Button>
                   </td>
                 </tr>

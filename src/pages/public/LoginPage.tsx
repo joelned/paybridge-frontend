@@ -70,41 +70,54 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center p-4 sm:p-6">
-      <Card padding="lg" variant="soft" interactive className="w-full max-w-md sm:max-w-lg">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50/30 flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
+      {/* Decorative elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200/20 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-200/20 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-100/15 rounded-full blur-3xl"></div>
+      </div>
+
+      <Card 
+        padding="lg" 
+        variant="elevated" 
+        className="w-full max-w-md relative z-10 bg-white/98 backdrop-blur-xl border-white/60 shadow-2xl shadow-slate-900/10"
+      >
         {/* Header */}
-        <div className="text-center mb-6 sm:mb-8">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-3 sm:mb-4 shadow-lg ring-1 ring-black/5">
-            <GitMerge className="text-white" size={28} />
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-2xl mb-4 shadow-lg shadow-blue-500/30 ring-4 ring-blue-100/50">
+            <GitMerge className="text-white" size={28} strokeWidth={2.5} />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-          <p className="text-sm sm:text-base text-gray-600">Sign in to your PayBridge account</p>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 via-blue-800 to-indigo-800 bg-clip-text text-transparent mb-2">
+            Welcome Back
+          </h1>
+          <p className="text-slate-600">Sign in to your PayBridge account</p>
         </div>
 
         {/* Success message */}
         {successMessage && (
-          <InlineAlert variant="success" icon={CheckCircle}>
+          <InlineAlert variant="success" icon={CheckCircle} className="mb-6">
             {successMessage}
           </InlineAlert>
         )}
 
         {/* Error message */}
         {error && (
-          <InlineAlert variant="error" icon={AlertCircle}>
+          <InlineAlert variant="error" icon={AlertCircle} className="mb-6">
             {error}
           </InlineAlert>
         )}
 
         {/* Login Form */}
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <Input
-            label="Email"
+            label="Email Address"
             type="email"
             name="email"
             id="email"
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            placeholder="you@example.com"
+            placeholder="you@company.com"
             required
             disabled={loading}
             autoComplete="email"
@@ -118,42 +131,68 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             id="password"
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            placeholder="••••••••"
+            placeholder="Enter your password"
             required
             disabled={loading}
             autoComplete="current-password"
             icon={Lock}
           />
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm mb-2 pt-1">
-            <label className="flex items-center gap-2 text-gray-600 cursor-pointer">
-              <input type="checkbox" className="rounded w-4 h-4" />
-              <span>Remember me</span>
+          <div className="flex items-center justify-between text-sm pt-1">
+            <label className="flex items-center gap-2 text-gray-700 cursor-pointer group">
+              <input 
+                type="checkbox" 
+                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-0 transition-all cursor-pointer" 
+              />
+              <span className="group-hover:text-gray-900 transition-colors">Remember me</span>
             </label>
             <button
               type="button"
-              className="text-indigo-600 hover:text-indigo-700 font-medium text-left sm:text-right"
+              className="text-blue-600 hover:text-blue-700 font-semibold transition-colors hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500/20 rounded px-1 py-0.5"
             >
               Forgot password?
             </button>
           </div>
-          <Button type="submit" className="w-full" loading={loading} disabled={loading}>
+
+          <Button 
+            type="submit" 
+            className="w-full" 
+            loading={loading} 
+            disabled={loading}
+            size="lg"
+          >
             Sign In
           </Button>
         </form>
 
+        {/* Divider */}
+        <div className="relative my-8">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-4 bg-white text-gray-500">New to PayBridge?</span>
+          </div>
+        </div>
+
         {/* Signup link */}
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
-            Don't have an account?{' '}
-            <button
-              onClick={() => navigate('/register')}
-              className="text-indigo-600 font-medium hover:underline"
-              disabled={loading}
-            >
-              Sign up
-            </button>
-          </p>
+        <div className="text-center">
+          <button
+            onClick={() => navigate('/register')}
+            className="text-slate-700 hover:text-blue-600 font-semibold transition-colors inline-flex items-center gap-2 group focus:outline-none focus:ring-2 focus:ring-blue-500/20 rounded-lg px-3 py-2"
+            disabled={loading}
+          >
+            <span>Create an account</span>
+            <span className="text-blue-600 group-hover:translate-x-1 transition-transform">→</span>
+          </button>
+        </div>
+
+        {/* Security badge */}
+        <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-center gap-2 text-xs text-slate-500">
+          <svg className="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clipRule="evenodd" />
+          </svg>
+          <span>Secured with enterprise-grade encryption</span>
         </div>
       </Card>
     </div>

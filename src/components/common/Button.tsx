@@ -24,12 +24,12 @@ export const Button: React.FC<ButtonProps> = ({
   const baseClasses = 'font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white';
   
   const variants = {
-    primary: 'bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800 shadow-sm hover:shadow-md focus-visible:ring-primary-500/50',
-    secondary: 'bg-gray-100 text-gray-800 hover:bg-gray-200 active:bg-gray-300 border border-gray-200 focus-visible:ring-gray-500/50',
-    outline: 'border border-primary-300 text-primary-700 hover:bg-primary-50 active:bg-primary-100 focus-visible:ring-primary-500/50',
-    ghost: 'text-gray-600 hover:bg-gray-50 active:bg-gray-100 focus-visible:ring-gray-500/50',
-    danger: 'bg-error-600 text-white hover:bg-error-700 active:bg-error-800 shadow-sm hover:shadow-md focus-visible:ring-error-500/50',
-    success: 'bg-success-600 text-white hover:bg-success-700 active:bg-success-800 shadow-sm hover:shadow-md focus-visible:ring-success-500/50'
+    primary: 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 active:from-blue-800 active:to-indigo-800 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 focus-visible:ring-blue-500/50',
+    secondary: 'bg-slate-100 text-slate-800 hover:bg-slate-200 active:bg-slate-300 border border-slate-200 shadow-sm hover:shadow-md focus-visible:ring-slate-500/50',
+    outline: 'border border-blue-300 text-blue-700 hover:bg-blue-50 active:bg-blue-100 shadow-sm hover:shadow-md focus-visible:ring-blue-500/50',
+    ghost: 'text-slate-600 hover:bg-slate-50 active:bg-slate-100 focus-visible:ring-slate-500/50',
+    danger: 'bg-gradient-to-r from-red-600 to-rose-600 text-white hover:from-red-700 hover:to-rose-700 active:from-red-800 active:to-rose-800 shadow-lg shadow-red-500/25 hover:shadow-xl hover:shadow-red-500/30 focus-visible:ring-red-500/50',
+    success: 'bg-gradient-to-r from-emerald-600 to-green-600 text-white hover:from-emerald-700 hover:to-green-700 active:from-emerald-800 active:to-green-800 shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:shadow-emerald-500/30 focus-visible:ring-emerald-500/50'
   };
   
   const sizes = {

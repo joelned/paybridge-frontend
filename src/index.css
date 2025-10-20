@@ -24,19 +24,6 @@
   background: #9ca3af;
 }
 
-/* Dark mode scrollbar for specific elements */
-.dark-scrollbar::-webkit-scrollbar-track {
-  background: #1f2937;
-}
-
-.dark-scrollbar::-webkit-scrollbar-thumb {
-  background: #4b5563;
-}
-
-.dark-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
-}
-
 /* Fade in animation for messages */
 @keyframes fadeIn {
   from {
@@ -148,7 +135,7 @@
   outline-offset: 2px;
 }
 
-/* Smooth transitions for theme changes */
+/* Smooth transitions */
 * {
   transition-property: background-color, border-color, color;
   transition-duration: 150ms;

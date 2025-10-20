@@ -6,7 +6,7 @@ import { Badge } from '../../../components/common/Badge';
 import type { Provider } from '../../../types';
 
 export const ProvidersTab: React.FC = () => {
-  const [providers, setProviders] = useState<Provider[]>([
+  const [providers] = useState<Provider[]>([
     { 
       id: 1, 
       name: 'Stripe', 

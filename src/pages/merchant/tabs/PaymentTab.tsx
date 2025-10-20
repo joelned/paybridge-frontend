@@ -117,12 +117,8 @@ export const PaymentsTab: React.FC = () => {
               </button>
             </div>
             <div className="space-y-4">
-        <Input label="Customer Email" placeholder="customer@example.com" required value={''} onChange={function (e: React.ChangeEvent<HTMLInputElement>): void {
-                throw new Error('Function not implemented.');
-              } } />
-        <Input label="Amount" type="number" placeholder="100.00" required value={''} onChange={function (e: React.ChangeEvent<HTMLInputElement>): void {
-                throw new Error('Function not implemented.');
-              } } />
+        <Input label="Customer Email" placeholder="customer@example.com" required value={''} onChange={() => {}} />
+        <Input label="Amount" type="number" placeholder="100.00" required value={''} onChange={() => {}} />
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
                 <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">

@@ -1,7 +1,7 @@
 import React from 'react';
 import { DollarSign, Activity, TrendingUp, GitMerge } from 'lucide-react';
 import { StatCard, Card, Badge, PageLayout, PageSection } from '../../../components/common';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export const OverviewTab: React.FC = () => {
   const stats = [

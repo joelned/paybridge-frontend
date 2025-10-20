@@ -26,13 +26,13 @@ export const Input: React.FC<InputProps> = ({
   return (
     <div className="mb-5">
       {label && (
-        <label className="block text-sm font-medium text-gray-900 mb-2" htmlFor={inputId}>
-          {label} {required && <span className="text-error-500 ml-1">*</span>}
+        <label className="block text-sm font-semibold text-slate-900 mb-2.5" htmlFor={inputId}>
+          {label} {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
       <div className="relative">
         {Icon && (
-          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+          <div className="absolute left-3.5 top-1/2 transform -translate-y-1/2 text-slate-400 pointer-events-none">
             <Icon size={18} />
           </div>
         )}
@@ -44,27 +44,28 @@ export const Input: React.FC<InputProps> = ({
           aria-invalid={!!error || undefined}
           aria-describedby={[hintId, errorId].filter(Boolean).join(' ') || undefined}
           className={`
-            w-full px-4 py-3 
-            ${Icon ? 'pl-11' : ''} 
-            border rounded-lg 
-            focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 
+            w-full px-4 py-3.5 
+            ${Icon ? 'pl-12' : ''} 
+            border rounded-xl 
+            focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 
             transition-all duration-200
-            placeholder:text-gray-400
-            text-gray-900
+            placeholder:text-slate-400
+            text-slate-900 font-medium
+            shadow-sm
             ${error 
-              ? 'border-error-300 bg-error-50/50 focus:border-error-500 focus:ring-error-500/20' 
-              : 'border-gray-300 bg-white hover:border-gray-400'
+              ? 'border-red-300 bg-red-50/50 focus:border-red-500 focus:ring-red-500/20 shadow-red-100/50' 
+              : 'border-slate-300 bg-white hover:border-slate-400 hover:shadow-md focus:shadow-lg focus:shadow-blue-500/10'
             }
-            ${disabled ? 'bg-gray-50 cursor-not-allowed opacity-60 text-gray-500' : ''}
+            ${disabled ? 'bg-slate-50 cursor-not-allowed opacity-60 text-slate-500' : ''}
             ${className}
           `}
         />
       </div>
       {hint && !error && (
-        <p id={hintId} className="mt-2 text-sm text-gray-600">{hint}</p>
+        <p id={hintId} className="mt-2.5 text-sm text-slate-600">{hint}</p>
       )}
       {error && (
-        <p id={errorId} role="alert" className="mt-2 text-sm text-error-600 font-medium">{error}</p>
+        <p id={errorId} role="alert" className="mt-2.5 text-sm text-red-600 font-semibold">{error}</p>
       )}
     </div>
   );

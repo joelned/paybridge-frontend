@@ -13,7 +13,6 @@ import type { User } from './types/auth';
 function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  // Check if a user is logged in on app load
   useEffect(() => {
     const user = authService.getCurrentUser();
     if (user && authService.isAuthenticated()) {
@@ -33,7 +32,6 @@ function App() {
   );
 }
 
-// ✅ This inner component can use useNavigate() safely
 function AppRoutes({
   currentUser,
   setCurrentUser,
@@ -45,7 +43,6 @@ function AppRoutes({
 }) {
   const navigate = useNavigate();
 
-  // 👇 Define this so LandingPage can navigate properly
   const handleNavigate = (page: string) => {
     navigate(`/${page}`);
   };
@@ -63,7 +60,6 @@ function AppRoutes({
 
       <Route path="/verify-email" element={<EmailVerificationPage />} />
 
-      {/* Merchant Dashboard (Protected) */}
       <Route
         path="/merchant"
         element={
@@ -73,7 +69,6 @@ function AppRoutes({
         }
       />
 
-      {/* Admin Dashboard (Protected) */}
       <Route
         path="/admin"
         element={
@@ -86,4 +81,4 @@ function AppRoutes({
   );
 }
 
-export default App;
+export default App; 

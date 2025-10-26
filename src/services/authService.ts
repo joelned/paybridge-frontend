@@ -21,6 +21,7 @@ class AuthService {
   private readonly AUTH_TOKEN_KEY = 'authToken';
   private readonly USER_KEY = 'user';
 
+
   /**
    * Register new user
    */
@@ -56,45 +57,33 @@ class AuthService {
   /**
    * Login user
    */
-  async login(email: string, password: string): Promise<{ user: User; token: string }> {
+  async login(email: string, password: string): Promise<{ user: User }> {
     const loginRequest: LoginRequest = { email, password };
 
     const response = await axiosInstance.post<LoginResponse>('/auth/login', loginRequest);
     const data = response.data;
 
-    // Store token
-    localStorage.setItem(this.AUTH_TOKEN_KEY, data.token);
+    // Create user from response data
+    const userType = data.userType.replace('[ROLE_', '').replace(']', '') as 'MERCHANT' | 'ADMIN';
+    const user: User = {
+      id: data.email, // Using email as ID since token is not exposed
+      email: data.email,
+      username: data.email.split('@')[0],
+      userType,
+      roles: [userType]
+    };
 
-    // Parse JWT to extract user info
-    const user = this.parseJwtToken(data.token);
-    
-    // Store user data
-    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-
-    return { user, token: data.token };
+    return { user };
   }
 
   /**
-   * Parse JWT token to extract user information
+   * Store auth data (only used in dev mode with fallback)
    */
-  private parseJwtToken(token: string): User {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      
-      const roles = payload.scope ? payload.scope.split(' ') : [];
-      const userType = roles.includes('ADMIN') ? 'ADMIN' : 'MERCHANT';
-
-      return {
-        id: payload.sub || payload.userId || '1',
-        email: payload.sub || '',
-        username: payload.sub ? payload.sub.split('@')[0] : '',
-        userType,
-        roles
-      };
-    } catch (error) {
-      throw new Error('Invalid token format');
-    }
+  storeAuthData(token: string, user: User): void {
+    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
   }
+
+
 
   /**
    * Get current user from localStorage
@@ -110,35 +99,72 @@ class AuthService {
     }
   }
 
+
+
   /**
-   * Get auth token
+   * Check if user is authenticated by making a test request
    */
-  getToken(): string | null {
-    return localStorage.getItem(this.AUTH_TOKEN_KEY);
+  async isAuthenticated(): Promise<boolean> {
+    try {
+      const response = await axiosInstance.get('/auth/me');
+      return response.status === 200;
+    } catch (error: any) {
+      // Only return false for actual auth failures, not network errors
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        return false;
+      }
+      // For network errors or other issues, assume still authenticated
+      // This prevents logout on temporary network issues
+      console.warn('Auth check failed due to network/server error:', error.message);
+      return true;
+    }
   }
 
   /**
-   * Check if user is authenticated
+   * Get current user data from backend
    */
-  isAuthenticated(): boolean {
-    const token = this.getToken();
-    if (!token) return false;
-
+  async getCurrentUserFromBackend(): Promise<User | null> {
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const expirationTime = payload.exp * 1000;
-      return Date.now() < expirationTime;
-    } catch {
-      return false;
+      const response = await axiosInstance.get('/auth/me');
+      const data = response.data;
+      
+      // Transform backend response to User format
+      const userType = data.userType?.replace('[ROLE_', '').replace(']', '') as 'MERCHANT' | 'ADMIN' || 'MERCHANT';
+      const user: User = {
+        id: data.id || data.email,
+        email: data.email,
+        username: data.username || data.email.split('@')[0],
+        userType,
+        roles: [userType],
+        businessName: data.businessName
+      };
+      
+      // Store the updated user data
+      this.storeAuthData('', user);
+      return user;
+    } catch (error) {
+      console.error('Failed to get user from backend:', error);
+      return null;
     }
+  }
+
+  /**
+   * Clear stored authentication data
+   */
+  clearStoredData(): void {
+    localStorage.removeItem(this.USER_KEY);
   }
 
   /**
    * Logout user
    */
-  logout(): void {
-    localStorage.removeItem(this.AUTH_TOKEN_KEY);
-    localStorage.removeItem(this.USER_KEY);
+  async logout(): Promise<void> {
+    try {
+      await axiosInstance.post('/auth/logout');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    this.clearStoredData();
   }
 }
 

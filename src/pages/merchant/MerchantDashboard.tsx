@@ -1,18 +1,22 @@
 // src/pages/merchant/MerchantDashboard.tsx
-import React, { useState, useMemo, useCallback, Suspense, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Activity, CreditCard, GitMerge, Link2, RefreshCw, BarChart3, Settings } from 'lucide-react';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Sidebar } from '../../components/layout/Sidebar';
 import { Header } from '../../components/layout/Header';
+import { BreadcrumbNavigation } from '../../components/common/BreadcrumbNavigation';
+import { usePageTitle } from '../../hooks/usePageTitle';
+import { useTabHistory } from '../../hooks/useTabHistory';
 import { type User } from '../../types/auth';
 
-// Lazy load tab components for better performance
-const OverviewTab = React.lazy(() => import('./tabs/OverviewTab').then(m => ({ default: m.OverviewTab })));
-const PaymentsTab = React.lazy(() => import('./tabs/PaymentTab').then(m => ({ default: m.PaymentsTab })));
-const ProvidersTab = React.lazy(() => import('./tabs/ProviderTab').then(m => ({ default: m.ProvidersTab })));
-const PaymentLinksTab = React.lazy(() => import('./tabs/PaymentLinksTab').then(m => ({ default: m.PaymentLinksTab })));
-const ReconciliationTab = React.lazy(() => import('./tabs/ReconciliationTab').then(m => ({ default: m.ReconciliationTab })));
-const AnalyticsTab = React.lazy(() => import('./tabs/AnalyticsTab').then(m => ({ default: m.AnalyticsTab })));
-const SettingsTab = React.lazy(() => import('./tabs/SettingsTab').then(m => ({ default: m.SettingsTab })));
+// Direct imports instead of lazy loading to avoid import issues
+import { OverviewTab } from './tabs/OverviewTab';
+import { PaymentsTab } from './tabs/PaymentTab';
+import { ProvidersTab } from './tabs/ProviderTab';
+import { PaymentLinksTab } from './tabs/PaymentLinksTab';
+import { ReconciliationTab } from './tabs/ReconciliationTab';
+import { AnalyticsTab } from './tabs/AnalyticsTab';
+import { SettingsTab } from './tabs/SettingsTab';
 
 interface MenuItem {
   id: string;
@@ -36,17 +40,7 @@ const MENU_ITEMS: MenuItem[] = [
   { id: 'settings', label: 'Settings', icon: Settings }
 ];
 
-const TabLoader: React.FC = () => (
-  <div className="flex flex-col items-center justify-center h-64 space-y-5" role="status" aria-label="Loading content">
-    <div className="relative">
-      <div className="animate-spin rounded-full h-14 w-14 border-4 border-slate-200/60"></div>
-      <div className="animate-spin rounded-full h-14 w-14 border-4 border-transparent border-t-blue-600 absolute top-0 left-0"></div>
-      <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-blue-50 to-indigo-50 opacity-20"></div>
-    </div>
-    <div className="text-sm text-slate-600 font-medium tracking-wide">Loading...</div>
-    <span className="sr-only">Loading content</span>
-  </div>
-);
+
 
 // Error boundary for tab loading failures
 class TabErrorBoundary extends React.Component<
@@ -90,102 +84,35 @@ class TabErrorBoundary extends React.Component<
 }
 
 export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({ userData, onLogout }) => {
-  const [activeTab, setActiveTab] = useState('overview');
+  const location = useLocation();
+  const navigate = useNavigate();
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(() => {
-    // Initialize from localStorage for better UX
     const saved = localStorage.getItem('sidebar-open');
     return saved ? JSON.parse(saved) : true;
   });
+
+  // Get current tab from URL with validation
+  const getCurrentTab = () => {
+    const path = location.pathname.split('/')[2] || 'overview';
+    const validTab = MENU_ITEMS.find(item => item.id === path);
+    return validTab ? path : 'overview';
+  };
+
+  const activeTab = getCurrentTab();
+  const { addToHistory, getRecentTabs } = useTabHistory();
+
+  // Track tab visits
+  useEffect(() => {
+    addToHistory(activeTab);
+  }, [activeTab, addToHistory]);
+
+
 
   // Persist sidebar state
   useEffect(() => {
     localStorage.setItem('sidebar-open', JSON.stringify(sidebarOpen));
   }, [sidebarOpen]);
-
-  // Enhanced keyboard navigation with arrow keys and focus management
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl/Cmd + Number for direct tab access
-      if (e.ctrlKey || e.metaKey) {
-        const tabIndex = parseInt(e.key) - 1;
-        if (tabIndex >= 0 && tabIndex < MENU_ITEMS.length) {
-          e.preventDefault();
-          handleTabChange(MENU_ITEMS[tabIndex].id);
-        }
-      }
-      
-      // Arrow key navigation when focused on sidebar
-      if (document.activeElement?.closest('aside')) {
-        const currentIndex = MENU_ITEMS.findIndex(item => item.id === activeTab);
-        let newIndex = currentIndex;
-        
-        if (e.key === 'ArrowDown') {
-          e.preventDefault();
-          newIndex = (currentIndex + 1) % MENU_ITEMS.length;
-        } else if (e.key === 'ArrowUp') {
-          e.preventDefault();
-          newIndex = currentIndex === 0 ? MENU_ITEMS.length - 1 : currentIndex - 1;
-        }
-        
-        if (newIndex !== currentIndex) {
-          handleTabChange(MENU_ITEMS[newIndex].id);
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeTab]);
-
-  // Preload next likely tabs for better UX
-  useEffect(() => {
-    const preloadTabs = ['payments', 'providers']; // Most commonly accessed after overview
-    if (activeTab === 'overview') {
-      preloadTabs.forEach(tabId => {
-        const component = getTabComponent(tabId);
-        if (component) {
-          // Trigger lazy loading
-          component().catch(() => {});
-        }
-      });
-    }
-  }, [activeTab]);
-
-  // Helper function to get tab component
-  const getTabComponent = (tabId: string) => {
-    const componentMap: Record<string, () => Promise<any>> = {
-      payments: () => import('./tabs/PaymentTab'),
-      providers: () => import('./tabs/ProviderTab'),
-      paymentlinks: () => import('./tabs/PaymentLinksTab'),
-      reconciliation: () => import('./tabs/ReconciliationTab'),
-      analytics: () => import('./tabs/AnalyticsTab'),
-      settings: () => import('./tabs/SettingsTab')
-    };
-    return componentMap[tabId];
-  };
-
-  // Memoized tab content renderer to prevent unnecessary re-renders
-  const renderTabContent = useCallback(() => {
-    switch (activeTab) {
-      case 'overview':
-        return <OverviewTab />;
-      case 'payments':
-        return <PaymentsTab />;
-      case 'providers':
-        return <ProvidersTab />;
-      case 'paymentlinks':
-        return <PaymentLinksTab />;
-      case 'reconciliation':
-        return <ReconciliationTab />;
-      case 'analytics':
-        return <AnalyticsTab />;
-      case 'settings':
-        return <SettingsTab userData={userData} />;
-      default:
-        return <OverviewTab />;
-    }
-  }, [activeTab, userData]);
 
   // Enhanced tab change with smooth transitions and focus management
   const handleTabChange = useCallback((tab: string) => {
@@ -193,9 +120,11 @@ export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({ userData, 
     
     setIsTransitioning(true);
     
+    // Navigate to new tab URL
+    navigate(`/merchant/${tab}`, { replace: false });
+    
     // Smooth transition timing
     setTimeout(() => {
-      setActiveTab(tab);
       setIsTransitioning(false);
       
       // Focus management for accessibility
@@ -204,7 +133,18 @@ export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({ userData, 
         (mainContent as HTMLElement).focus();
       }
     }, 150);
-  }, [activeTab]);
+  }, [activeTab, navigate]);
+
+  // Handle browser back/forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      setIsTransitioning(true);
+      setTimeout(() => setIsTransitioning(false), 150);
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const handleSidebarToggle = useCallback((open: boolean) => {
     setSidebarOpen(open);
@@ -214,6 +154,41 @@ export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({ userData, 
     return MENU_ITEMS.find(item => item.id === activeTab)?.label || 'Overview';
   }, [activeTab]);
 
+  // Update page title based on current tab
+  usePageTitle(currentTabLabel);
+
+  // Add keyboard shortcuts for tab navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Alt + number for direct tab access
+      if (e.altKey && !e.ctrlKey && !e.metaKey) {
+        const tabIndex = parseInt(e.key) - 1;
+        if (tabIndex >= 0 && tabIndex < MENU_ITEMS.length) {
+          e.preventDefault();
+          handleTabChange(MENU_ITEMS[tabIndex].id);
+        }
+      }
+      
+      // Alt + Left/Right for tab navigation
+      if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        e.preventDefault();
+        const currentIndex = MENU_ITEMS.findIndex(item => item.id === activeTab);
+        let newIndex;
+        
+        if (e.key === 'ArrowRight') {
+          newIndex = (currentIndex + 1) % MENU_ITEMS.length;
+        } else {
+          newIndex = currentIndex === 0 ? MENU_ITEMS.length - 1 : currentIndex - 1;
+        }
+        
+        handleTabChange(MENU_ITEMS[newIndex].id);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeTab, handleTabChange]);
+
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 overflow-hidden">
       <Sidebar
@@ -222,6 +197,7 @@ export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({ userData, 
         sidebarOpen={sidebarOpen}
         setSidebarOpen={handleSidebarToggle}
         menuItems={MENU_ITEMS}
+        recentTabs={getRecentTabs(activeTab)}
         onLogout={onLogout}
       />
 
@@ -229,27 +205,42 @@ export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({ userData, 
         <Header 
           activeTab={activeTab} 
           menuItems={MENU_ITEMS} 
-          userEmail={userData.email} 
+          userEmail={userData.email}
+          userData={userData}
+          onLogout={onLogout}
         />
-
         <div className="flex-1 overflow-auto">
           <div className="p-6 lg:p-8 max-w-7xl mx-auto w-full">
+            <BreadcrumbNavigation 
+              items={[
+                { label: 'Dashboard', onClick: () => handleTabChange('overview') },
+                { label: currentTabLabel }
+              ]}
+              className="mb-6"
+            />
             <TabErrorBoundary tabName={currentTabLabel}>
-              <Suspense fallback={<TabLoader />}>
-                <div 
-                  className={`transition-all duration-300 ease-in-out ${
-                    isTransitioning 
-                      ? 'opacity-0 transform translate-y-3 scale-[0.98]' 
-                      : 'opacity-100 transform translate-y-0 scale-100'
-                  }`}
-                  key={activeTab}
-                  role="tabpanel"
-                  tabIndex={-1}
-                  aria-labelledby={`tab-${activeTab}`}
-                >
-                  {renderTabContent()}
-                </div>
-              </Suspense>
+              <div 
+                className={`transition-all duration-300 ease-in-out ${
+                  isTransitioning 
+                    ? 'opacity-0 transform translate-y-3 scale-[0.98]' 
+                    : 'opacity-100 transform translate-y-0 scale-100'
+                }`}
+                role="tabpanel"
+                tabIndex={-1}
+                aria-labelledby={`tab-${activeTab}`}
+              >
+                <Routes>
+                  <Route path="/" element={<Navigate to="/merchant/overview" replace />} />
+                  <Route path="/overview" element={<OverviewTab key="overview" />} />
+                  <Route path="/payments" element={<PaymentsTab key="payments" />} />
+                  <Route path="/providers" element={<ProvidersTab key="providers" />} />
+                  <Route path="/paymentlinks" element={<PaymentLinksTab key="paymentlinks" />} />
+                  <Route path="/reconciliation" element={<ReconciliationTab key="reconciliation" />} />
+                  <Route path="/analytics" element={<AnalyticsTab key="analytics" />} />
+                  <Route path="/settings" element={<SettingsTab key="settings" userData={userData} />} />
+                  <Route path="*" element={<Navigate to="/merchant/overview" replace />} />
+                </Routes>
+              </div>
             </TabErrorBoundary>
           </div>
         </div>

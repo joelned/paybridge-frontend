@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Copy, X, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Copy, X, AlertCircle, Plus } from 'lucide-react';
 import { Button } from '../../../components/common/Button';
 import { Card } from '../../../components/common/Card';
 import { Badge } from '../../../components/common/Badge';
+import { useModalContext } from '../../../contexts/ModalContext';
 import type { Provider } from '../../../types';
 
 export const ProvidersTab: React.FC = () => {
+  const { openModal } = useModalContext();
   const [providers] = useState<Provider[]>([
     { 
       id: 1, 
@@ -67,6 +69,10 @@ export const ProvidersTab: React.FC = () => {
         <p className="text-sm text-gray-600 mt-1">Connect and manage your payment provider integrations</p>
       </div>
 
+      <div className="mb-6">
+        <Button icon={Plus} onClick={() => openModal('addProvider')}>Add Provider</Button>
+      </div>
+
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {providers.map((provider) => (
           <Card key={provider.id} className="p-6">
@@ -101,13 +107,24 @@ export const ProvidersTab: React.FC = () => {
               </div>
             )}
             
-            <Button 
-              variant={provider.enabled ? 'outline' : 'primary'} 
-              className="w-full"
-              onClick={() => handleConfigureProvider(provider)}
-            >
-              {provider.enabled ? 'Configure' : 'Enable'}
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant={provider.enabled ? 'outline' : 'primary'} 
+                className="flex-1"
+                onClick={() => provider.enabled ? openModal('updateProvider', { provider }) : openModal('addProvider')}
+              >
+                {provider.enabled ? 'Configure' : 'Enable'}
+              </Button>
+              {provider.enabled && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => openModal('viewProviderDashboard', { provider })}
+                >
+                  View
+                </Button>
+              )}
+            </div>
           </Card>
         ))}
       </div>

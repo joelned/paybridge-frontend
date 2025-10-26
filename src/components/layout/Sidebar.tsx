@@ -14,6 +14,7 @@ interface SidebarProps {
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   menuItems: MenuItem[];
+  recentTabs?: string[];
   onLogout: () => void;
 }
 
@@ -23,6 +24,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   sidebarOpen,
   setSidebarOpen,
   menuItems,
+  recentTabs = [],
   onLogout
 }) => {
   return (
@@ -64,11 +66,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {sidebarOpen && (
               <span className="truncate animate-fadeIn">{item.label}</span>
             )}
+            {recentTabs.includes(item.id) && item.id !== activeTab && (
+              <div className="w-1.5 h-1.5 bg-blue-400 rounded-full opacity-60"></div>
+            )}
             {activeTab === item.id && (
               <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-r-full"></div>
             )}
           </button>
         ))}
+        
+        {sidebarOpen && recentTabs.length > 0 && (
+          <div className="pt-4 mt-4 border-t border-slate-200/60">
+            <p className="text-xs font-medium text-slate-500 mb-2 px-3.5">Recent</p>
+            {recentTabs.slice(0, 3).map((tabId) => {
+              const item = menuItems.find(m => m.id === tabId);
+              if (!item) return null;
+              return (
+                <button
+                  key={`recent-${item.id}`}
+                  onClick={() => setActiveTab(item.id)}
+                  className="w-full flex items-center gap-3 px-3.5 py-2 rounded-lg transition-all duration-200 group text-xs text-slate-600 hover:bg-slate-50/80 hover:text-slate-900"
+                >
+                  <item.icon size={14} className="text-slate-400 group-hover:text-slate-600 transition-colors flex-shrink-0" />
+                  <span className="truncate">{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </nav>
 
       <div className="p-4 border-t border-slate-200/60">

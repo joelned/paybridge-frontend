@@ -1,84 +1,84 @@
-// src/App.tsx
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { LoginPage } from './pages/public/LoginPage';
-import { RegisterPage } from './pages/public/RegisterPage';
-import { EmailVerificationPage } from './pages/public/EmailVerificationPage';
-import { MerchantDashboard } from './pages/merchant/MerchantDashboard';
-import { AdminDashboard } from './pages/admin/AdminDashboard';
-import { LandingPage } from './pages/public/LandingPage';
-import { authService } from './services/authService';
-import { useEffect, useState } from 'react';
-import type { User } from './types/auth';
+import { lazy, Suspense, memo } from 'react';
+import { ProtectedRoute } from './components/common/ProtectedRoute';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ModalContextProvider } from './contexts/ModalContext';
+import { ToastProvider } from './contexts/ToastContext';
+import { LoadingSpinner } from './components/ui/LoadingSpinner';
+import { PageTransition } from './components/common/PageTransition';
+
+// Lazy load pages for code splitting
+const LandingPage = lazy(() => import('./pages/public/LandingPage').then(m => ({ default: m.LandingPage })));
+const LoginPage = lazy(() => import('./pages/public/LoginPage').then(m => ({ default: m.LoginPage })));
+const RegisterPage = lazy(() => import('./pages/public/RegisterPage').then(m => ({ default: m.RegisterPage })));
+const EmailVerificationPage = lazy(() => import('./pages/public/EmailVerificationPage').then(m => ({ default: m.EmailVerificationPage })));
+const MerchantDashboard = lazy(() => import('./pages/merchant/MerchantDashboard').then(m => ({ default: m.MerchantDashboard })));
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 
 function App() {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const user = authService.getCurrentUser();
-    if (user && authService.isAuthenticated()) {
-      setCurrentUser(user);
-    }
-  }, []);
-
-  const handleLogout = () => {
-    authService.logout();
-    setCurrentUser(null);
-  };
-
   return (
-    <Router>
-      <AppRoutes currentUser={currentUser} setCurrentUser={setCurrentUser} onLogout={handleLogout} />
-    </Router>
+    <ToastProvider>
+      <ModalContextProvider>
+        <AuthProvider>
+          <Router>
+            <AppRoutes />
+          </Router>
+        </AuthProvider>
+      </ModalContextProvider>
+    </ToastProvider>
   );
 }
 
-function AppRoutes({
-  currentUser,
-  setCurrentUser,
-  onLogout,
-}: {
-  currentUser: User | null;
-  setCurrentUser: React.Dispatch<React.SetStateAction<User | null>>;
-  onLogout: () => void;
-}) {
+const AppRoutes = memo(() => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const handleNavigate = (page: string) => {
     navigate(`/${page}`);
   };
 
   return (
-    <Routes>
-      <Route path="/" element={<LandingPage onNavigate={handleNavigate} />} />
+    <Suspense fallback={<LoadingSpinner />}>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/" element={<PageTransition><LandingPage onNavigate={handleNavigate} /></PageTransition>} />
+        <Route path="/login" element={<PageTransition><LoginPage /></PageTransition>} />
+        <Route path="/register" element={<PageTransition><RegisterPage onNavigate={handleNavigate} /></PageTransition>} />
+        <Route path="/verify-email" element={<PageTransition><EmailVerificationPage /></PageTransition>} />
 
-      <Route
-        path="/login"
-        element={<LoginPage onLogin={setCurrentUser}/>}
-      />
+        {/* Protected routes */}
+        <Route
+          path="/merchant/*"
+          element={
+            <ProtectedRoute requiredRole="MERCHANT">
+              <PageTransition><MerchantDashboard userData={user!} onLogout={logout} /></PageTransition>
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/admin/*"
+          element={
+            <ProtectedRoute requiredRole="ADMIN">
+              <PageTransition><AdminDashboard userData={user!} onLogout={logout} /></PageTransition>
+            </ProtectedRoute>
+          }
+        />
 
-      <Route path="/register" element={<RegisterPage onNavigate={handleNavigate} />} />
-
-      <Route path="/verify-email" element={<EmailVerificationPage />} />
-
-      <Route
-        path="/merchant"
-        element={
-          currentUser?.userType === 'MERCHANT'
-            ? <MerchantDashboard userData={currentUser} onLogout={onLogout} />
-            : <Navigate to="/login" replace />
-        }
-      />
-
-      <Route
-        path="/admin"
-        element={
-          currentUser?.userType === 'ADMIN'
-            ? <AdminDashboard userData={currentUser} onLogout={onLogout} />
-            : <Navigate to="/login" replace />
-        }
-      />
-    </Routes>
+        {/* Redirect authenticated users to their dashboard */}
+        <Route
+          path="*"
+          element={
+            user ? (
+              <Navigate to={user.userType === 'ADMIN' ? '/admin/overview' : '/merchant/overview'} replace />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+      </Routes>
+    </Suspense>
   );
-}
+});
 
 export default App; 

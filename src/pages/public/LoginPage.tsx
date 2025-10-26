@@ -1,25 +1,30 @@
 // src/pages/public/LoginPage.tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { GitMerge, AlertCircle, Mail, Lock, CheckCircle } from 'lucide-react';
+import { AlertCircle, Mail, Lock, CheckCircle } from 'lucide-react';
+import paybridgeLogo from '../../assets/paybridge_logo.png';
 import { Button, Input, Card } from '../../components/common';
 import { InlineAlert } from '../../components/feedback/InlineAlert';
-import { authService } from '../../services/authService';
-import type { User } from '../../types/auth';
+import { useAuth } from '../../contexts/AuthContext';
 
-interface LoginPageProps {
-  onLogin: (user: User) => void;
-}
-
-export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
+export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const state = location.state as { message?: string };
+  const { login, user, isAuthenticated } = useAuth();
   
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState(state?.message || '');
   const [loading, setLoading] = useState(false);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const target = user.userType === 'ADMIN' ? '/admin/overview' : '/merchant/overview';
+      navigate(target, { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
 
   useEffect(() => {
     if (successMessage) {
@@ -31,13 +36,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
 
     try {
-      const { user } = await authService.login(formData.email, formData.password);
-      onLogin(user);
-
-      const target = user.userType === 'ADMIN' ? '/admin' : '/merchant';
-      navigate(target);
+      await login(formData.email, formData.password);
+      // Navigation will be handled by the useEffect above
     } catch (err: any) {
       if (err.response) {
         const status = err.response.status;
@@ -85,9 +88,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       >
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-2xl mb-4 shadow-lg shadow-blue-500/30 ring-4 ring-blue-100/50">
-            <GitMerge className="text-white" size={28} strokeWidth={2.5} />
-          </div>
+          <img src={paybridgeLogo} alt="PayBridge" className="w-16 h-16 mb-4 mx-auto" />
           <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 via-blue-800 to-indigo-800 bg-clip-text text-transparent mb-2">
             Welcome Back
           </h1>
@@ -103,7 +104,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
         {/* Error message */}
         {error && (
-          <InlineAlert variant="error" icon={AlertCircle} className="mb-6">
+          <InlineAlert variant="error" icon={AlertCircle} className="mb-6 text-red-500">
             {error}
           </InlineAlert>
         )}

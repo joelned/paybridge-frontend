@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import { Plus, Search, Download, Eye, X, Shield } from 'lucide-react';
+import { Plus, Search, Download, Eye, RefreshCw } from 'lucide-react';
 import { Button } from '../../../components/common/Button';
 import { SectionHeader } from '../../../components/section/SectionHeader';
 import { Toolbar } from '../../../components/layout/Toolbar';
-import { Input } from '../../../components/common/Input';
 import { Card } from '../../../components/common/Card';
 import { Badge } from '../../../components/common/Badge';
+import { useModalContext } from '../../../contexts/ModalContext';
 import type { Payment } from '../../../types';
 
 export const PaymentsTab: React.FC = () => {
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const { openModal } = useModalContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
@@ -40,7 +40,6 @@ export const PaymentsTab: React.FC = () => {
       <SectionHeader
         title="All Payments"
         subtitle="Unified view across all providers"
-        actions={<Button icon={Plus} onClick={() => setShowCreateModal(true)}>Create Payment</Button>}
       />
 
       <Card padding="lg">
@@ -66,7 +65,7 @@ export const PaymentsTab: React.FC = () => {
             <option value="FAILED">Failed</option>
             <option value="REFUNDED">Refunded</option>
           </select>
-          <Button variant="outline" icon={Download}>Export CSV</Button>
+          <Button variant="outline" icon={Download} onClick={() => openModal('exportData', { type: 'payments' })}>Export CSV</Button>
         </Toolbar>
       </Card>
 
@@ -98,7 +97,26 @@ export const PaymentsTab: React.FC = () => {
                   <td className="px-6 py-4 text-sm text-gray-700">{payment.provider}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{payment.date}</td>
                   <td className="px-6 py-4">
-                    <Button variant="ghost" size="sm" icon={Eye}>View</Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        icon={Eye}
+                        onClick={() => openModal('transactionDetails', { transaction: payment })}
+                      >
+                        View
+                      </Button>
+                      {payment.status === 'FAILED' && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          icon={RefreshCw}
+                          onClick={() => openModal('retryPayment', { payment })}
+                        >
+                          Retry
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -107,53 +125,7 @@ export const PaymentsTab: React.FC = () => {
         </div>
       </Card>
 
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 sm:p-6">
-          <Card className="w-full max-w-2xl p-6 max-h-[85vh] overflow-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">Create Payment</h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X size={24} />
-              </button>
-            </div>
-            <div className="space-y-4">
-        <Input label="Customer Email" placeholder="customer@example.com" required value={''} onChange={() => {}} />
-        <Input label="Amount" type="number" placeholder="100.00" required value={''} onChange={() => {}} />
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
-                <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
-                  <option>USD</option>
-                  <option>EUR</option>
-                  <option>GBP</option>
-                  <option>NGN</option>
-                </select>
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Provider (Optional)</label>
-                <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
-                  <option value="">Auto-route (Recommended)</option>
-                  <option>Stripe</option>
-                  <option>PayPal</option>
-                  <option>Flutterwave</option>
-                </select>
-              </div>
-              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-                <div className="flex items-start gap-2">
-                  <Shield className="text-indigo-600 mt-0.5" size={20} />
-                  <div>
-                    <p className="text-sm font-medium text-indigo-900">Idempotency Protection</p>
-                    <p className="text-xs text-indigo-700 mt-1">A unique idempotency key will be automatically generated to prevent duplicate charges</p>
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-3 pt-4">
-                <Button className="flex-1">Create Payment</Button>
-                <Button variant="outline" onClick={() => setShowCreateModal(false)}>Cancel</Button>
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
+
     </div>
   );
 };

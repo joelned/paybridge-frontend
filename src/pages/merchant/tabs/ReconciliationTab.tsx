@@ -3,6 +3,7 @@ import { RefreshCw, Download, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { Button } from '../../../components/common/Button';
 import { Card } from '../../../components/common/Card';
 import { Badge } from '../../../components/common/Badge';
+import { useModalContext } from '../../../contexts/ModalContext';
 
 type ReconciliationStatus = 'COMPLETED' | 'IN_PROGRESS' | 'FAILED' | 'PENDING';
 type DiscrepancyType = 'AMOUNT_MISMATCH' | 'MISSING_PAYMENT' | 'STATUS_MISMATCH' | 'EXTRA_PAYMENT';
@@ -29,6 +30,7 @@ interface Discrepancy {
 
 export const ReconciliationTab: React.FC = () => {
   const [activeView, setActiveView] = useState<'jobs' | 'discrepancies'>('jobs');
+  const { openModal } = useModalContext();
 
   const reconciliationJobs: ReconciliationJob[] = [
     { id: 'job_1', provider: 'Stripe', period: 'Oct 1-7, 2024', status: 'COMPLETED', matched: 543, discrepancies: 2, date: '2024-10-08' },
@@ -64,7 +66,7 @@ export const ReconciliationTab: React.FC = () => {
           <h2 className="text-xl font-semibold text-gray-900">Reconciliation</h2>
           <p className="text-sm text-gray-600 mt-1">Automatic transaction matching and discrepancy detection</p>
         </div>
-        <Button icon={RefreshCw}>Run Reconciliation</Button>
+        <Button icon={RefreshCw} onClick={() => openModal('runReconciliation')}>Run Reconciliation</Button>
       </div>
 
       <div className="flex gap-2 border-b border-gray-200 overflow-x-auto">
@@ -157,7 +159,7 @@ export const ReconciliationTab: React.FC = () => {
                     <td className="px-6 py-3 text-sm text-gray-900">{disc.providerAmount}</td>
                     <td className="px-6 py-3 text-sm font-semibold text-red-600">{disc.difference}</td>
                     <td className="px-6 py-3">
-                      <Button variant="outline" size="sm">Investigate</Button>
+                      <Button variant="outline" size="sm" onClick={() => openModal('investigateDiscrepancy', { discrepancy: disc })}>Investigate</Button>
                     </td>
                   </tr>
                 ))}

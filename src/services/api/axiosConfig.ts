@@ -1,7 +1,23 @@
-// src/services/api/axiosConfig.ts
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+
+let onAuthError: (() => void) | null = null;
+let isLoggingOut = false;
+
+export const setAuthInterceptors = (authErrorHandler: () => void) => {
+  onAuthError = () => {
+    // Prevent multiple simultaneous logout calls
+    if (!isLoggingOut) {
+      isLoggingOut = true;
+      authErrorHandler();
+      // Reset flag after a delay
+      setTimeout(() => {
+        isLoggingOut = false;
+      }, 1000);
+    }
+  };
+};
 
 export const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -9,34 +25,21 @@ export const axiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,
+  withCredentials: true, // Include cookies in requests
 });
 
-// Request interceptor - add auth token
-axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Response interceptor - handle errors globally
+// Response interceptor - handle 401 errors
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+    // Only trigger auth error for actual authentication failures
+    // Don't trigger on network errors or server errors
+    if (error.response?.status === 401 && onAuthError) {
+      // Add a small delay to prevent multiple rapid logout calls
+      setTimeout(() => {
+        onAuthError();
+      }, 100);
     }
     return Promise.reject(error);
   }
 );
-
-export default axiosInstance;

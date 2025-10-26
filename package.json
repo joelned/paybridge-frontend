@@ -4,10 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "vite --host",
+    "build": "tsc -b && vite build --mode production",
+    "build:analyze": "npm run build && npx vite-bundle-analyzer dist",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview --host",
+    "perf": "npm run build && npx serve -s dist -l 3000"
   },
   "dependencies": {
     "axios": "^1.12.2",

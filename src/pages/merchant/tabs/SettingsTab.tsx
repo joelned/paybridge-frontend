@@ -1,17 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Copy } from 'lucide-react';
 import { Button } from '../../../components/common/Button';
 import { Input } from '../../../components/common/Input';
 import { Card } from '../../../components/common/Card';
-import { type User } from '../../../types';
+import { axiosInstance } from '../../../services/api/axiosConfig';
+
 
 interface SettingsTabProps {
-  userData: User;
+  userData: {
+    businessName?: string;
+    email: string;
+    [key: string]: any;
+  };
 }
 
 export const SettingsTab: React.FC<SettingsTabProps> = ({ userData }) => {
   const [webhookUrl, setWebhookUrl] = useState('https://yourdomain.com/webhook');
-  const [apiKey] = useState('pk_live_51H7xKjK...');
+  const [apiKey, setApiKey] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchApiKey = async () => {
+      try {
+        const response = await axiosInstance.get('/get-apikey');
+        console.log('API Key response:', response.data);
+        setApiKey(response.data.api_key_test || '');
+      } catch (error) {
+        console.error('Failed to fetch API key:', error);
+        if (error.response) {
+          console.error('Response status:', error.response.status);
+          console.error('Response data:', error.response.data);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchApiKey();
+  }, []);
 
   const handleCopyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -42,7 +68,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ userData }) => {
           </div>
         </div>
         <div className="mt-3 sm:mt-4">
-          <Button className="w-full sm:w-auto">Update Information</Button>
+          <Button className="w-full sm:w-auto" onClick={() => console.log('Update business info')}>Update Information</Button>
         </div>
       </Card>
 
@@ -54,7 +80,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ userData }) => {
             <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="password"
-                value={apiKey}
+                value={loading ? 'Loading...' : apiKey}
                 readOnly
                 className="w-full sm:flex-1 px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg"
               />

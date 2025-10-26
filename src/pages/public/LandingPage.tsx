@@ -50,11 +50,6 @@ const providers = [
     color: '#635BFF' 
   },
   { 
-    name: 'PayPal', 
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg', 
-    color: '#00457C' 
-  },
-  { 
     name: 'Flutterwave', 
     logo: 'https://upload.wikimedia.org/wikipedia/commons/9/9e/Flutterwave_Logo.png', 
     color: '#F5A623' 
@@ -114,7 +109,7 @@ const providers = [
         {/* Provider Logos */}
         <div className="mt-12 sm:mt-16">
           <p className="text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6">Supports all major payment providers</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 place-items-center">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-3 sm:gap-3 place-items-center">
             {providers.map((provider, idx) => (
               <div
                 key={idx}

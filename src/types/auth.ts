@@ -4,7 +4,7 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  token: string;
+  token?: string; // Optional since backend sends null
   email: string;
   userType: string;
   expiresIn: string;
@@ -16,4 +16,5 @@ export interface User {
   username: string;
   userType: 'MERCHANT' | 'ADMIN';
   roles?: string[];
+  businessName?: string;
 }

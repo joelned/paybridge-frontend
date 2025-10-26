@@ -1,5 +1,5 @@
-/* src/index.css */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap');
+/* src/index.css - ADD THESE ANIMATIONS */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap') layer(fonts);
 
 @tailwind base;
 @tailwind components;
@@ -96,6 +96,36 @@
   animation: slideInLeft 0.3s ease-out;
 }
 
+/* Slide in from right (for toast notifications) */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slideInRight {
+  animation: slideInRight 0.3s ease-out;
+}
+
+/* Slide up from bottom (for mobile bottom sheets) */
+@keyframes slideInUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-slideInUp {
+  animation: slideInUp 0.3s ease-out;
+}
+
 /* Shake animation for errors */
 @keyframes shake {
   0%, 100% {
@@ -113,7 +143,7 @@
   animation: shake 0.5s ease-in-out;
 }
 
-/* Scale up animation */
+/* Scale up animation for dropdowns */
 @keyframes scaleUp {
   from {
     transform: scale(0.95);
@@ -135,9 +165,119 @@
   outline-offset: 2px;
 }
 
-/* Smooth transitions */
-* {
+/* Critical path styles */
+@layer base {
+  html {
+    font-display: swap;
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  
+  /* Prevent layout shifts */
+  * {
+    box-sizing: border-box;
+  }
+  
+  img, video {
+    max-width: 100%;
+    height: auto;
+  }
+  
+  /* Reserve space for content */
+  .content-container {
+    min-height: calc(100vh - 4rem);
+    contain: layout style;
+  }
+  
+  /* Prevent flash of unstyled content */
+  .page-transition {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+  }
+  
+  .page-transition.loaded {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Smooth transitions - only for interactive elements */
+button, a, input, select, textarea {
   transition-property: background-color, border-color, color;
-  transition-duration: 150ms;
+  transition-duration: 100ms;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Instant tab switching */
+.tab-content {
+  contain: layout style paint;
+  will-change: auto;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.tab-content:not(.active) {
+  display: none;
+}
+
+/* Performance optimizations */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Prevent scroll when modal is open on mobile */
+body.modal-open {
+  overflow: hidden;
+}
+
+/* Mobile overlay for dropdowns */
+.mobile-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+  z-index: 40;
+}
+
+/* Safe area insets for mobile devices with notches */
+@supports (padding: max(0px)) {
+  .safe-area-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* Mobile notification dropdown */
+@media (max-width: 640px) {
+  .notification-dropdown {
+    position: fixed !important;
+    top: auto !important;
+    right: 1rem !important;
+    left: 1rem !important;
+    bottom: 1rem !important;
+    width: auto !important;
+    max-height: 60vh;
+    border-radius: 1rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  }
 }

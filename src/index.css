@@ -210,25 +210,25 @@
   }
 }
 
-/* Smooth transitions - only for interactive elements */
+/* No transitions to prevent flash */
 button, a, input, select, textarea {
-  transition-property: background-color, border-color, color;
-  transition-duration: 100ms;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition: none;
 }
 
-/* Instant tab switching */
-.tab-content {
+/* Zero-delay tab switching */
+.tab-container {
   contain: layout style paint;
-  will-change: auto;
+  will-change: contents;
+}
+
+.tab-content {
+  display: none;
+  contain: layout style paint;
 }
 
 .tab-content.active {
   display: block;
-}
-
-.tab-content:not(.active) {
-  display: none;
+  transform: translateZ(0);
 }
 
 /* Performance optimizations */

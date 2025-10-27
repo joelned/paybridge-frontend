@@ -1,5 +1,6 @@
 // src/components/ui/TabContainer.tsx
-import { memo, useState, useEffect } from 'react';
+import { useState } from 'react';
+import { flushSync } from 'react-dom';
 
 interface Tab {
   id: string;
@@ -13,17 +14,12 @@ interface TabContainerProps {
   className?: string;
 }
 
-export const TabContainer = memo<TabContainerProps>(({ 
+export const TabContainer = ({ 
   tabs, 
   defaultTab, 
   className = '' 
-}) => {
+}: TabContainerProps) => {
   const [activeTab, setActiveTab] = useState(defaultTab || tabs[0]?.id);
-  const [renderedTabs, setRenderedTabs] = useState(new Set([activeTab]));
-
-  useEffect(() => {
-    setRenderedTabs(prev => new Set([...prev, activeTab]));
-  }, [activeTab]);
 
   return (
     <div className={className}>
@@ -32,11 +28,11 @@ export const TabContainer = memo<TabContainerProps>(({
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+              onClick={() => flushSync(() => setActiveTab(tab.id))}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === tab.id
                   ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  : 'border-transparent text-gray-500'
               }`}
             >
               {tab.label}
@@ -45,16 +41,15 @@ export const TabContainer = memo<TabContainerProps>(({
         </nav>
       </div>
       
-      <div className="mt-6">
+      <div className="mt-6 tab-container">
         {tabs.map((tab) => (
-          <div
-            key={tab.id}
-            className={`tab-content ${activeTab === tab.id ? 'active' : ''}`}
-          >
-            {renderedTabs.has(tab.id) && tab.content}
-          </div>
+          activeTab === tab.id && (
+            <div key={tab.id} className="tab-content active">
+              {tab.content}
+            </div>
+          )
         ))}
       </div>
     </div>
   );
-});
+};

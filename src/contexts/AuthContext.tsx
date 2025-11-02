@@ -1,7 +1,7 @@
-// src/contexts/AuthContext.tsx - IMPROVED VERSION
-import React, { createContext, useContext, useEffect, useState, type ReactNode, useCallback } from 'react';
+// src/contexts/AuthContext.tsx - Cookie-based auth with proper session sync
+import React, { createContext, useContext, useEffect, useState, type ReactNode, useCallback, useRef } from 'react';
 import { authService } from '../services/authService';
-import { setAuthInterceptors } from '../services/api/axiosConfig';
+import { setAuthErrorHandler } from '../services/api/axiosConfig';
 import type { User } from '../types/auth';
 
 interface AuthContextType {
@@ -20,27 +20,37 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    // Initialize with cached user if available
+    return authService.getCachedUser();
+  });
   const [isLoading, setIsLoading] = useState(true);
+  const initializingRef = useRef(false);
 
-  // Handle logout from axios interceptor
+  // Handle auth errors from axios interceptor
   const handleAuthError = useCallback(() => {
     setUser(null);
+    setIsLoading(false);
   }, []);
 
-  // Initialize auth
+  // Initialize auth - load from cache only
   useEffect(() => {
-    setAuthInterceptors(handleAuthError);
+    if (initializingRef.current) return;
+    
+    initializingRef.current = true;
+    setAuthErrorHandler(handleAuthError);
 
     const initAuth = async () => {
       try {
-        const currentUser = await authService.getCurrentUser();
-        setUser(currentUser);
+        // Load cached user data (no backend call)
+        const cachedUser = await authService.getCurrentUser();
+        setUser(cachedUser);
       } catch (error) {
         console.error('Auth initialization failed:', error);
         setUser(null);
       } finally {
         setIsLoading(false);
+        initializingRef.current = false;
       }
     };
 
@@ -48,18 +58,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [handleAuthError]);
 
   const login = async (email: string, password: string): Promise<void> => {
-    const { user: loggedInUser } = await authService.login(email, password);
-    setUser(loggedInUser);
+    setIsLoading(true);
+    try {
+      const { user: loggedInUser } = await authService.login(email, password);
+      setUser(loggedInUser);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const logout = async (): Promise<void> => {
-    await authService.logout();
-    setUser(null);
+    setIsLoading(true);
+    try {
+      await authService.logout();
+    } finally {
+      setUser(null);
+      setIsLoading(false);
+    }
   };
 
   const refreshUser = async (): Promise<void> => {
-    const refreshedUser = await authService.getCurrentUser();
-    setUser(refreshedUser);
+    if (initializingRef.current) return; // Prevent concurrent refresh
+    
+    // Just reload from cache since we don't have /auth/me
+    const cachedUser = await authService.getCurrentUser();
+    setUser(cachedUser);
   };
 
   const value: AuthContextType = {

@@ -21,7 +21,7 @@ interface RegisterResponse {
 
 class AuthService {
   private readonly USER_KEY = 'user';
-
+  private authCheckInProgress = false;
 
   /**
    * Register new user
@@ -56,25 +56,27 @@ class AuthService {
   }
 
   /**
-   * Login user
+   * Login user - uses login response data directly
    */
   async login(email: string, password: string): Promise<{ user: User }> {
     try {
       const loginRequest: LoginRequest = { email, password };
-
       const response = await axiosInstance.post<LoginResponse>('/auth/login', loginRequest);
       const data = response.data;
 
-      // Create user from response data
-      const userType = normalizeUserType(data.userType);
+      // Create user from login response
+      const userType = normalizeUserType(data.userType || data.user_type || data.type);
       const user: User = {
-        id: data.email, // Using email as ID since token is not exposed
+        id: data.id || data.email,
         email: data.email,
-        username: data.email.split('@')[0],
+        username: data.username || data.name || data.email.split('@')[0],
         userType,
-        roles: normalizeUserRoles(data.userType)
+        roles: normalizeUserRoles(data.userType || data.user_type || data.roles || data.type),
+        businessName: data.businessName || data.business_name
       };
 
+      // Store user data locally
+      this.storeUserData(user);
       return { user };
     } catch (error) {
       throw error instanceof ApiError ? error : new ApiError('Login failed');
@@ -91,52 +93,21 @@ class AuthService {
 
 
   /**
-   * Get current user from backend using HTTP-only cookie
+   * Get current user from local storage (no backend call)
+   * Returns cached user data from successful login
    */
   async getCurrentUser(): Promise<User | null> {
-    try {
-      const response = await axiosInstance.get('/auth/me');
-      const data = response.data;
-      
-      // Transform backend response to User format
-      const userType = normalizeUserType(data.userType);
-      const user: User = {
-        id: data.id || data.email,
-        email: data.email,
-        username: data.username || data.email.split('@')[0],
-        userType,
-        roles: normalizeUserRoles(data.userType || data.roles),
-        businessName: data.businessName
-      };
-      
-      // Store user data locally for quick access
-      this.storeUserData(user);
-      return user;
-    } catch (error) {
-      console.error('Failed to get current user:', error);
-      return null;
-    }
+    return this.getCachedUser();
   }
 
 
 
   /**
-   * Check if user is authenticated using HTTP-only cookie
+   * Check if user is authenticated by checking cached user data
    */
   async isAuthenticated(): Promise<boolean> {
-    try {
-      const response = await axiosInstance.get('/auth/me');
-      return response.status === 200;
-    } catch (error: any) {
-      // Only return false for actual auth failures
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        this.clearStoredData(); // Clear cached user data on auth failure
-        return false;
-      }
-      // For network errors, don't clear data but return false
-      console.warn('Auth check failed due to network/server error:', error.message);
-      return false;
-    }
+    const cachedUser = this.getCachedUser();
+    return cachedUser !== null;
   }
 
   /**
@@ -161,15 +132,20 @@ class AuthService {
   }
 
   /**
-   * Logout user
+   * Logout user - clears local data and optionally calls backend
    */
   async logout(): Promise<void> {
     try {
+      // Try to call backend logout if endpoint exists
       await axiosInstance.post('/auth/logout');
     } catch (error) {
-      console.error('Logout error:', error);
+      // Ignore logout endpoint errors - may not exist
+      console.warn('Backend logout call failed (endpoint may not exist):', error);
+    } finally {
+      // Always clear local data
+      this.clearStoredData();
+      this.authCheckInProgress = false;
     }
-    this.clearStoredData();
   }
 }
 

@@ -6,7 +6,7 @@ import type { ApiResponse } from '../../types/api';
 let onAuthError: (() => void) | null = null;
 let isLoggingOut = false;
 
-export const setAuthInterceptors = (authErrorHandler: () => void) => {
+export const setAuthErrorHandler = (authErrorHandler: () => void) => {
   onAuthError = () => {
     // Prevent multiple simultaneous logout calls
     if (!isLoggingOut) {
@@ -26,25 +26,44 @@ export const axiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Include cookies in requests
+  withCredentials: true, // Essential for HTTP-only cookies
 });
 
-// Response interceptor - transform responses and handle errors
+// Request interceptor - add CSRF token and handle AbortController
+axiosInstance.interceptors.request.use(
+  (config) => {
+    // Add CSRF token from meta tag if available
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    if (csrfToken) {
+      config.headers['X-CSRF-Token'] = csrfToken;
+    }
+    
+    // Ensure signal is properly handled
+    if (config.signal?.aborted) {
+      throw new Error('Request was aborted');
+    }
+    
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor - handle errors and transform responses
 axiosInstance.interceptors.response.use(
   (response) => {
     // Transform successful responses to extract data
     const apiResponse = response.data as ApiResponse;
     if (apiResponse && typeof apiResponse === 'object' && 'success' in apiResponse) {
-      // Return the data field for successful responses
       response.data = apiResponse.data;
     }
     return response;
   },
   (error) => {
-    // Handle authentication errors
-    if (error.response?.status === 401 && onAuthError) {
+    // Handle authentication errors globally
+    if (error.response?.status === 401 && onAuthError && !error.config?.url?.includes('/auth/login')) {
+      // Only trigger auth error for non-login requests
       setTimeout(() => {
-        onAuthError();
+        onAuthError?.();
       }, 100);
     }
     
@@ -53,3 +72,8 @@ axiosInstance.interceptors.response.use(
     return Promise.reject(apiError);
   }
 );
+
+// Reset logout flag when needed
+export const resetLogoutFlag = () => {
+  isLoggingOut = false;
+};

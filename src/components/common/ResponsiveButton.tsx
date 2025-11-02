@@ -37,19 +37,29 @@ export const ResponsiveButton = React.memo(forwardRef<HTMLButtonElement, Respons
     };
 
     const sizeClasses = isMobile ? {
-      sm: 'px-3 py-2 text-sm min-h-[44px]',
-      md: 'px-4 py-3 text-base min-h-[48px]',
-      lg: 'px-6 py-4 text-lg min-h-[52px]',
+      sm: 'px-4 py-3 min-h-[44px] min-w-[44px]',
+      md: 'px-6 py-3 min-h-[48px] min-w-[48px]',
+      lg: 'px-8 py-4 min-h-[52px] min-w-[52px]',
     } : {
-      sm: 'px-3 py-1.5 text-sm',
-      md: 'px-4 py-2 text-sm',
-      lg: 'px-6 py-3 text-base',
+      sm: 'px-3 py-1.5 min-h-[36px]',
+      md: 'px-4 py-2 min-h-[40px]',
+      lg: 'px-6 py-3 min-h-[44px]',
+    };
+
+    const textSizeClasses = isMobile ? {
+      sm: 'text-sm',
+      md: 'text-base',
+      lg: 'text-lg',
+    } : {
+      sm: 'text-sm',
+      md: 'text-sm',
+      lg: 'text-base',
     };
 
     const widthClass = (fullWidth || (isMobile && mobileFullWidth)) ? 'w-full' : '';
     const loadingClass = loading ? 'cursor-wait' : '';
 
-    return `${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${widthClass} ${loadingClass}`.trim();
+    return `${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${textSizeClasses[size]} ${widthClass} ${loadingClass} ${isMobile ? 'mobile-tap-highlight' : ''}`.trim();
   }, [variant, size, fullWidth, mobileFullWidth, isMobile, loading]);
 
   const isDisabled = disabled || loading;

@@ -33,17 +33,19 @@ const MobileCard = React.memo(<T,>({
 
   return (
     <div 
-      className="table-row bg-white border border-gray-200 rounded-lg p-4 shadow-sm"
+      className={`bg-white border border-gray-200 rounded-lg p-4 shadow-sm transition-all duration-200 ${
+        onRowClick ? 'cursor-pointer hover:shadow-md active:scale-[0.98] min-h-[44px]' : ''
+      }`}
       onClick={() => onRowClick?.(item)}
       role={onRowClick ? "button" : undefined}
       tabIndex={onRowClick ? 0 : undefined}
     >
       {visibleColumns.map((column) => (
-        <div key={String(column.key)} className="table-cell">
-          <div className="cell-label">
+        <div key={String(column.key)} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+          <div className="text-sm font-medium text-gray-600 min-w-0 flex-1">
             {column.mobileLabel || column.header}
           </div>
-          <div className="cell-value">
+          <div className="text-sm text-gray-900 font-medium text-right ml-4">
             {column.render 
               ? column.render(item[column.key], item)
               : String(item[column.key] || '')
@@ -52,7 +54,7 @@ const MobileCard = React.memo(<T,>({
         </div>
       ))}
       {onRowClick && (
-        <div className="flex justify-end mt-2">
+        <div className="flex justify-end mt-3 pt-2 border-t border-gray-100">
           <ChevronRight size={16} className="text-gray-400" />
         </div>
       )}
@@ -169,7 +171,7 @@ export const ResponsiveDataTable = React.memo(<T,>({
 
   if (isMobile) {
     return (
-      <div className="table-card-mobile space-y-4">
+      <div className="space-y-3 px-1">
         {memoizedData.map((item, index) => (
           <MobileCard
             key={keyExtractor ? keyExtractor(item) : index}

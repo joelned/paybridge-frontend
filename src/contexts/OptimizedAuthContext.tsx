@@ -34,11 +34,21 @@ export const OptimizedAuthProvider = React.memo(({
 
   // Memoize callbacks to prevent unnecessary re-renders
   const login = useCallback(async (email: string, password: string) => {
-    await onLogin(email, password);
+    try {
+      await onLogin(email, password);
+    } catch (error) {
+      // Re-throw to let calling component handle
+      throw error;
+    }
   }, [onLogin]);
 
-  const logout = useCallback(() => {
-    onLogout();
+  const logout = useCallback(async () => {
+    try {
+      await onLogout();
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Continue with logout even if backend call fails
+    }
   }, [onLogout]);
 
   const updateUser = useCallback((updates: Partial<User>) => {

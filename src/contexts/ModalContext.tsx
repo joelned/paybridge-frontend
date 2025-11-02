@@ -1,17 +1,34 @@
-/**
- * Modal Context Provider
- * 
- * Provides modal state and actions to the entire app.
- * Renders all modal components and manages their lifecycle.
- */
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 
-import React, { createContext, useContext } from 'react';
-import { useModals } from '../hooks/useModals';
-import { ModalProvider } from '../components/modals/ModalProvider';
+// Typed modal IDs
+export type ModalId = 
+  | 'addProvider'
+  | 'editProvider'
+  | 'deleteProvider'
+  | 'paymentDetails'
+  | 'createPaymentLink'
+  | 'editPaymentLink'
+  | 'confirmAction'
+  | 'exportData'
+  | 'runReconciliation'
+  | 'userSettings'
+  | 'notification';
 
-type ModalContextType = ReturnType<typeof useModals>;
+interface ModalState {
+  id: ModalId;
+  data?: any;
+  isOpen: boolean;
+}
 
-const ModalContext = createContext<ModalContextType | undefined>(undefined);
+interface ModalContextValue {
+  activeModal: ModalState | null;
+  openModal: (id: ModalId, data?: any) => void;
+  closeModal: () => void;
+  updateModalData: (data: any) => void;
+  isModalOpen: (id: ModalId) => boolean;
+}
+
+const ModalContext = createContext<ModalContextValue | undefined>(undefined);
 
 export const useModalContext = () => {
   const context = useContext(ModalContext);
@@ -25,14 +42,38 @@ interface ModalContextProviderProps {
   children: React.ReactNode;
 }
 
-export const ModalContextProvider: React.FC<ModalContextProviderProps> = ({ children }) => {
-  const modalState = useModals();
+export const ModalContextProvider = React.memo(({ children }: ModalContextProviderProps) => {
+  const [activeModal, setActiveModal] = useState<ModalState | null>(null);
+
+  const openModal = useCallback((id: ModalId, data?: any) => {
+    setActiveModal({ id, data, isOpen: true });
+  }, []);
+
+  const closeModal = useCallback(() => {
+    setActiveModal(null);
+  }, []);
+
+  const updateModalData = useCallback((data: any) => {
+    setActiveModal(prev => prev ? { ...prev, data } : null);
+  }, []);
+
+  const isModalOpen = useCallback((id: ModalId) => {
+    return activeModal?.id === id && activeModal.isOpen;
+  }, [activeModal]);
+
+  const contextValue = useMemo(() => ({
+    activeModal,
+    openModal,
+    closeModal,
+    updateModalData,
+    isModalOpen
+  }), [activeModal, openModal, closeModal, updateModalData, isModalOpen]);
 
   return (
-    <ModalContext.Provider value={modalState}>
-      <ModalProvider modals={modalState.modals} closeModal={modalState.closeModal}>
-        {children}
-      </ModalProvider>
+    <ModalContext.Provider value={contextValue}>
+      {children}
     </ModalContext.Provider>
   );
-};
+});
+
+ModalContextProvider.displayName = 'ModalContextProvider';

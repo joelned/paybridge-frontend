@@ -57,24 +57,38 @@ export const ResponsiveModal = React.memo(({
 
   if (isMobile) {
     return (
-      <div className="modal-mobile">
-        {/* Mobile Header */}
-        <div className="modal-header">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-          {showCloseButton && (
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors touch-target"
-              aria-label="Close modal"
-            >
-              <X size={20} />
-            </button>
-          )}
-        </div>
+      <div className="fixed inset-0 z-50 flex flex-col">
+        {/* Backdrop */}
+        <div 
+          className="flex-1 bg-black bg-opacity-50"
+          onClick={onClose}
+        />
+        
+        {/* Bottom Sheet */}
+        <div className="bg-white rounded-t-2xl shadow-2xl max-h-[90vh] flex flex-col animate-slide-up">
+          {/* Handle */}
+          <div className="flex justify-center py-2">
+            <div className="w-12 h-1 bg-gray-300 rounded-full" />
+          </div>
+          
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900 flex-1 pr-4">{title}</h2>
+            {showCloseButton && (
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                aria-label="Close modal"
+              >
+                <X size={20} />
+              </button>
+            )}
+          </div>
 
-        {/* Mobile Content */}
-        <div className="modal-content">
-          {children}
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {children}
+          </div>
         </div>
       </div>
     );

@@ -9,7 +9,7 @@ function isValidUserType(value: string): value is UserType {
 
 /**
  * Normalizes user type from backend format to frontend format
- * Handles formats like: [ROLE_MERCHANT], ROLE_MERCHANT, MERCHANT, or arrays
+ * Handles formats like: [ROLE_MERCHANT], ROLE_MERCHANT, MERCHANT, merchant, admin, user_type, type, etc.
  * 
  * @param userType - The user type from backend (string, array, or undefined)
  * @returns Normalized user type or 'MERCHANT' as fallback
@@ -31,16 +31,36 @@ export function normalizeUserType(userType: unknown): UserType {
     }
 
     // Convert to string and normalize
-    const roleString = String(userType).trim();
+    const roleString = String(userType).trim().toUpperCase();
     
-    // Remove brackets and ROLE_ prefix
-    const cleaned = roleString
+    // Handle various backend formats
+    let cleaned = roleString
       .replace(/^\[/, '')           // Remove opening bracket
       .replace(/\]$/, '')           // Remove closing bracket
       .replace(/^ROLE_/, '')        // Remove ROLE_ prefix
-      .toUpperCase();
+      .replace(/^USER_/, '')        // Remove USER_ prefix
+      .replace(/_TYPE$/, '')        // Remove _TYPE suffix
+      .replace(/^TYPE_/, '');       // Remove TYPE_ prefix
 
-    // Validate and return
+    // Map common variations
+    const typeMap: Record<string, UserType> = {
+      'MERCHANT': 'MERCHANT',
+      'ADMIN': 'ADMIN',
+      'ADMINISTRATOR': 'ADMIN',
+      'BUSINESS': 'MERCHANT',
+      'COMPANY': 'MERCHANT',
+      'SELLER': 'MERCHANT',
+      'VENDOR': 'MERCHANT',
+      'SUPER_ADMIN': 'ADMIN',
+      'SUPERADMIN': 'ADMIN'
+    };
+
+    // Check direct mapping first
+    if (typeMap[cleaned]) {
+      return typeMap[cleaned];
+    }
+
+    // Validate standard types
     if (isValidUserType(cleaned)) {
       return cleaned;
     }

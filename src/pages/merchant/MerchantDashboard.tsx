@@ -8,6 +8,8 @@ import { BreadcrumbNavigation } from '../../components/common/BreadcrumbNavigati
 import { ErrorBoundary } from '../../components/common/ErrorBoundary';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { useTabHistory } from '../../hooks/useTabHistory';
+import { LoadingSkeleton, SkipLink, LiveRegion } from '../../components/common';
+import { useAnnouncement } from '../../hooks/useAccessibility';
 import type { User } from '../../types/auth';
 
 // Optimized lazy loading with preload hints
@@ -43,22 +45,19 @@ const MENU_ITEMS: MenuItem[] = [
 
 // Enhanced loading component with consistent styling
 const TabLoadingFallback = () => (
-  <div className="flex items-center justify-center min-h-[500px] bg-white/50 backdrop-blur-sm rounded-2xl border border-slate-200/60">
-    <div className="text-center space-y-6 p-8">
-      <div className="relative">
-        <div className="w-16 h-16 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin mx-auto" />
-        <Loader2 className="absolute inset-0 m-auto text-indigo-600 animate-pulse" size={20} />
-      </div>
-      <div className="space-y-2">
-        <p className="text-lg font-semibold text-slate-700">Loading content...</p>
-        <p className="text-sm text-slate-500">Please wait while we prepare your dashboard</p>
-      </div>
+  <div className="space-y-6">
+    <LoadingSkeleton variant="stat" className="" />
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <LoadingSkeleton variant="card" />
+      <LoadingSkeleton variant="card" />
+      <LoadingSkeleton variant="card" />
     </div>
+    <LoadingSkeleton variant="table" rows={5} />
   </div>
 );
 
 // Professional error component with consistent design
-const ErrorFallback = ({ error }: { error: Error }) => (
+const ErrorFallback = (error: Error) => (
   <div className="flex items-center justify-center min-h-[500px] bg-white/50 backdrop-blur-sm rounded-2xl border border-red-200/60">
     <div className="text-center space-y-6 p-8 max-w-md">
       <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
@@ -66,7 +65,7 @@ const ErrorFallback = ({ error }: { error: Error }) => (
       </div>
       <div className="space-y-3">
         <h3 className="text-xl font-bold text-slate-900">Something went wrong</h3>
-        <p className="text-sm text-slate-600 leading-relaxed">{error.message}</p>
+        <p className="text-sm text-slate-600 leading-relaxed">{error?.message || 'An error occurred'}</p>
       </div>
       <button 
         onClick={() => window.location.reload()} 
@@ -82,6 +81,7 @@ const ErrorFallback = ({ error }: { error: Error }) => (
 export const MerchantDashboard = ({ userData, onLogout }: Props) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { announce } = useAnnouncement();
   
   // Persistent sidebar state with improved initialization
   const [sidebarOpen, setSidebarOpen] = useState(() => {
@@ -107,10 +107,17 @@ export const MerchantDashboard = ({ userData, onLogout }: Props) => {
   const activeTab = getCurrentTab();
   const { addToHistory, getRecentTabs } = useTabHistory();
 
+  // Memoized current tab label for performance
+  const currentTabLabel = useMemo(() => {
+    return MENU_ITEMS.find(item => item.id === activeTab)?.label || 'Overview';
+  }, [activeTab]);
+
   // Track tab history for better UX
   useEffect(() => {
     addToHistory(activeTab);
-  }, [activeTab, addToHistory]);
+    // Announce tab changes to screen readers
+    announce(`Navigated to ${currentTabLabel} section`);
+  }, [activeTab, addToHistory, currentTabLabel, announce]);
 
   // Persist sidebar state with error handling
   useEffect(() => {
@@ -135,11 +142,6 @@ export const MerchantDashboard = ({ userData, onLogout }: Props) => {
       setTimeout(() => setIsNavigating(false), 150);
     });
   }, [activeTab, navigate, isNavigating]);
-
-  // Memoized current tab label for performance
-  const currentTabLabel = useMemo(() => {
-    return MENU_ITEMS.find(item => item.id === activeTab)?.label || 'Overview';
-  }, [activeTab]);
 
   // Set page title for better SEO and UX
   usePageTitle(`${currentTabLabel} - PayBridge Dashboard`);
@@ -173,8 +175,12 @@ export const MerchantDashboard = ({ userData, onLogout }: Props) => {
   }, [handleTabChange]);
 
   return (
-    // Main dashboard container with consistent background and no layout shifts
-    <div className="flex h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/10 overflow-hidden">
+    <>
+      <SkipLink />
+      <LiveRegion message={`Current page: ${currentTabLabel}`} />
+      
+      {/* Main dashboard container with consistent background and no layout shifts */}
+      <div className="flex h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/10 overflow-hidden">
       {/* Sidebar with consistent spacing and transitions */}
       <Sidebar
         activeTab={activeTab}
@@ -187,7 +193,7 @@ export const MerchantDashboard = ({ userData, onLogout }: Props) => {
       />
 
       {/* Main content area with proper flex layout */}
-      <main className="flex-1 overflow-hidden flex flex-col min-w-0" role="main">
+      <main id="main-content" className="flex-1 overflow-hidden flex flex-col min-w-0" role="main" tabIndex={-1}>
         {/* Header with consistent styling */}
         <Header 
           activeTab={activeTab} 
@@ -221,6 +227,7 @@ export const MerchantDashboard = ({ userData, onLogout }: Props) => {
                     role="tabpanel" 
                     tabIndex={-1} 
                     aria-labelledby={`tab-${activeTab}`}
+                    aria-label={`${currentTabLabel} content`}
                     className={`transition-opacity duration-200 ${
                       isNavigating ? 'opacity-75' : 'opacity-100'
                     }`}
@@ -244,5 +251,6 @@ export const MerchantDashboard = ({ userData, onLogout }: Props) => {
         </div>
       </main>
     </div>
+    </>
   );
 };

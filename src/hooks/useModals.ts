@@ -1,76 +1,104 @@
-// src/hooks/useModals.ts
+/**
+ * Generic Modal System Hook
+ * 
+ * Usage patterns:
+ * 
+ * 1. Simple modal:
+ *    openModal('addProvider')
+ * 
+ * 2. Modal with data:
+ *    openModal('updateProvider', { provider })
+ * 
+ * 3. Modal with callbacks:
+ *    openModal('addProvider', null, {
+ *      onSuccess: () => refetchProviders(),
+ *      onError: (error) => showError(error)
+ *    })
+ * 
+ * 4. Confirm dialog:
+ *    openConfirmDialog({
+ *      title: 'Delete Provider',
+ *      message: 'Are you sure?',
+ *      onConfirm: async () => await deleteProvider(id)
+ *    })
+ */
+
 import { useState, useCallback } from 'react';
+import { ModalState, ModalId, ModalCallbacks, ConfirmDialogData } from '../types/modal';
 
-export interface ModalState {
-  // Payment modals
-  retryPayment: { isOpen: boolean; payment: any | null };
-  transactionDetails: { isOpen: boolean; transaction: any | null };
-  exportData: { isOpen: boolean; type: string | null };
-  
-  // Provider modals
-  addProvider: { isOpen: boolean };
-  updateProvider: { isOpen: boolean; provider: any | null };
-  viewProviderDashboard: { isOpen: boolean; provider: any | null };
-  
-  // Reconciliation modals
-  runReconciliation: { isOpen: boolean };
-  investigateDiscrepancy: { isOpen: boolean; discrepancy: any | null };
-  
-  // Settings modals
-  updateBusinessInfo: { isOpen: boolean };
-  
-  // Payment Links modals
-  createLink: { isOpen: boolean };
-  
-  // General modals
-  confirm: { isOpen: boolean; title: string; message: string; onConfirm: (() => void) | null };
-  success: { isOpen: boolean; title: string; message: string };
-  info: { isOpen: boolean; title: string; message: string };
-  loading: { isOpen: boolean; message: string };
-}
-
-const initialState: ModalState = {
-  retryPayment: { isOpen: false, payment: null },
-  transactionDetails: { isOpen: false, transaction: null },
-  exportData: { isOpen: false, type: null },
+const createInitialState = (): ModalState => ({
+  retryPayment: { isOpen: false },
+  transactionDetails: { isOpen: false },
+  exportData: { isOpen: false },
   addProvider: { isOpen: false },
-  updateProvider: { isOpen: false, provider: null },
-  viewProviderDashboard: { isOpen: false, provider: null },
+  updateProvider: { isOpen: false },
+  viewProviderDashboard: { isOpen: false },
   runReconciliation: { isOpen: false },
-  investigateDiscrepancy: { isOpen: false, discrepancy: null },
+  investigateDiscrepancy: { isOpen: false },
   updateBusinessInfo: { isOpen: false },
+  createPaymentLink: { isOpen: false },
   createLink: { isOpen: false },
-  confirm: { isOpen: false, title: '', message: '', onConfirm: null },
-  success: { isOpen: false, title: '', message: '' },
-  info: { isOpen: false, title: '', message: '' },
-  loading: { isOpen: false, message: '' }
-};
+  confirmDialog: { isOpen: false },
+  success: { isOpen: false },
+  info: { isOpen: false },
+  loading: { isOpen: false }
+});
 
 export const useModals = () => {
-  const [modals, setModals] = useState<ModalState>(initialState);
+  const [modals, setModals] = useState<ModalState>(createInitialState());
 
-  const openModal = useCallback((modalName: keyof ModalState, data?: any) => {
+  const openModal = useCallback((modalId: ModalId, data?: any, callbacks?: ModalCallbacks) => {
     setModals(prev => ({
       ...prev,
-      [modalName]: { ...prev[modalName], isOpen: true, ...data }
+      [modalId]: {
+        isOpen: true,
+        data,
+        callbacks
+      }
     }));
   }, []);
 
-  const closeModal = useCallback((modalName: keyof ModalState) => {
-    setModals(prev => ({
-      ...prev,
-      [modalName]: { ...initialState[modalName] }
-    }));
+  const closeModal = useCallback((modalId: ModalId) => {
+    setModals(prev => {
+      const modal = prev[modalId];
+      if (modal.callbacks?.onClose) {
+        modal.callbacks.onClose();
+      }
+      return {
+        ...prev,
+        [modalId]: { isOpen: false }
+      };
+    });
   }, []);
 
-  const closeAllModals = useCallback(() => {
-    setModals(initialState);
-  }, []);
+  const openConfirmDialog = useCallback((config: ConfirmDialogData) => {
+    openModal('confirmDialog', config);
+  }, [openModal]);
+
+  const showSuccess = useCallback((title: string, message: string) => {
+    openModal('success', { title, message });
+  }, [openModal]);
+
+  const showInfo = useCallback((title: string, message: string) => {
+    openModal('info', { title, message });
+  }, [openModal]);
+
+  const showLoading = useCallback((message: string) => {
+    openModal('loading', { message });
+  }, [openModal]);
+
+  const hideLoading = useCallback(() => {
+    closeModal('loading');
+  }, [closeModal]);
 
   return {
     modals,
     openModal,
     closeModal,
-    closeAllModals
+    openConfirmDialog,
+    showSuccess,
+    showInfo,
+    showLoading,
+    hideLoading
   };
 };

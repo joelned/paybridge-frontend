@@ -37,7 +37,7 @@ export const useModalManager = <T = any>(): UseModalManagerReturn<T> => {
   }, [modals]);
 
   const getModalData = useCallback(<D = T>(modalId: string): D | undefined => {
-    return modals[modalId]?.data as D;
+    return modals[modalId]?.data as unknown as D;
   }, [modals]);
 
   const closeAllModals = useCallback(() => {

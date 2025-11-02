@@ -1,6 +1,8 @@
 // src/services/authService.ts
 import { axiosInstance } from './api/axiosConfig';
 import type { LoginRequest, LoginResponse, User } from '../types/auth';
+import { normalizeUserType, normalizeUserRoles } from '../utils/helpers';
+import { ApiError } from '../types/api';
 
 interface RegisterRequest {
   businessName: string;
@@ -18,7 +20,6 @@ interface RegisterResponse {
 }
 
 class AuthService {
-  private readonly AUTH_TOKEN_KEY = 'authToken';
   private readonly USER_KEY = 'user';
 
 
@@ -58,43 +59,61 @@ class AuthService {
    * Login user
    */
   async login(email: string, password: string): Promise<{ user: User }> {
-    const loginRequest: LoginRequest = { email, password };
+    try {
+      const loginRequest: LoginRequest = { email, password };
 
-    const response = await axiosInstance.post<LoginResponse>('/auth/login', loginRequest);
-    const data = response.data;
+      const response = await axiosInstance.post<LoginResponse>('/auth/login', loginRequest);
+      const data = response.data;
 
-    // Create user from response data
-    const userType = data.userType.replace('[ROLE_', '').replace(']', '') as 'MERCHANT' | 'ADMIN';
-    const user: User = {
-      id: data.email, // Using email as ID since token is not exposed
-      email: data.email,
-      username: data.email.split('@')[0],
-      userType,
-      roles: [userType]
-    };
+      // Create user from response data
+      const userType = normalizeUserType(data.userType);
+      const user: User = {
+        id: data.email, // Using email as ID since token is not exposed
+        email: data.email,
+        username: data.email.split('@')[0],
+        userType,
+        roles: normalizeUserRoles(data.userType)
+      };
 
-    return { user };
+      return { user };
+    } catch (error) {
+      throw error instanceof ApiError ? error : new ApiError('Login failed');
+    }
   }
 
   /**
-   * Store auth data (only used in dev mode with fallback)
+   * Store user data (no token needed with HTTP-only cookies)
    */
-  storeAuthData(token: string, user: User): void {
+  storeUserData(user: User): void {
     localStorage.setItem(this.USER_KEY, JSON.stringify(user));
   }
 
 
 
   /**
-   * Get current user from localStorage
+   * Get current user from backend using HTTP-only cookie
    */
-  getCurrentUser(): User | null {
-    const userJson = localStorage.getItem(this.USER_KEY);
-    if (!userJson) return null;
-
+  async getCurrentUser(): Promise<User | null> {
     try {
-      return JSON.parse(userJson);
-    } catch {
+      const response = await axiosInstance.get('/auth/me');
+      const data = response.data;
+      
+      // Transform backend response to User format
+      const userType = normalizeUserType(data.userType);
+      const user: User = {
+        id: data.id || data.email,
+        email: data.email,
+        username: data.username || data.email.split('@')[0],
+        userType,
+        roles: normalizeUserRoles(data.userType || data.roles),
+        businessName: data.businessName
+      };
+      
+      // Store user data locally for quick access
+      this.storeUserData(user);
+      return user;
+    } catch (error) {
+      console.error('Failed to get current user:', error);
       return null;
     }
   }
@@ -102,48 +121,34 @@ class AuthService {
 
 
   /**
-   * Check if user is authenticated by making a test request
+   * Check if user is authenticated using HTTP-only cookie
    */
   async isAuthenticated(): Promise<boolean> {
     try {
       const response = await axiosInstance.get('/auth/me');
       return response.status === 200;
     } catch (error: any) {
-      // Only return false for actual auth failures, not network errors
+      // Only return false for actual auth failures
       if (error.response?.status === 401 || error.response?.status === 403) {
+        this.clearStoredData(); // Clear cached user data on auth failure
         return false;
       }
-      // For network errors or other issues, assume still authenticated
-      // This prevents logout on temporary network issues
+      // For network errors, don't clear data but return false
       console.warn('Auth check failed due to network/server error:', error.message);
-      return true;
+      return false;
     }
   }
 
   /**
-   * Get current user data from backend
+   * Get cached user data from localStorage (for quick access)
    */
-  async getCurrentUserFromBackend(): Promise<User | null> {
+  getCachedUser(): User | null {
+    const userJson = localStorage.getItem(this.USER_KEY);
+    if (!userJson) return null;
+
     try {
-      const response = await axiosInstance.get('/auth/me');
-      const data = response.data;
-      
-      // Transform backend response to User format
-      const userType = data.userType?.replace('[ROLE_', '').replace(']', '') as 'MERCHANT' | 'ADMIN' || 'MERCHANT';
-      const user: User = {
-        id: data.id || data.email,
-        email: data.email,
-        username: data.username || data.email.split('@')[0],
-        userType,
-        roles: [userType],
-        businessName: data.businessName
-      };
-      
-      // Store the updated user data
-      this.storeAuthData('', user);
-      return user;
-    } catch (error) {
-      console.error('Failed to get user from backend:', error);
+      return JSON.parse(userJson);
+    } catch {
       return null;
     }
   }

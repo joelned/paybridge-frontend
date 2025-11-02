@@ -1,206 +1,184 @@
-// src/components/modals/UpdateProviderModal.tsx
-import React, { useState } from 'react';
-import { Copy, Shield, AlertCircle } from 'lucide-react';
-import { FormModal } from './FormModal';
-import { Input } from '../common/Input';
-import { Button } from '../common/Button';
+import React, { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
+import { ProviderType, PaymentProviderData } from '../../types/provider';
+import { ProviderConfigForm } from './ProviderConfigForm';
+import { validateProviderConfig } from '../../utils/providerValidator';
+import { providerService } from '../../services';
+import { getErrorMessage, getValidationErrors } from '../../utils/errorHandler';
+import { useModal } from '../../hooks/useModal';
 
-interface Provider {
-  id: number;
-  name: string;
-  enabled: boolean;
-  logo: string;
-  color: string;
-  apiKey: string;
-  transactions: number;
-  volume: string;
-}
+export const UpdateProviderModal: React.FC = () => {
+  const { isOpen, data, close, handleSuccess, handleError } = useModal('updateProvider');
+  const provider = data as PaymentProviderData | null;
+  const [formData, setFormData] = useState({
+    name: '',
+    config: {},
+    enabled: true,
+    priority: 1
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(false);
 
-interface UpdateProviderModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (data: ProviderUpdateData) => void;
-  provider: Provider | null;
-  loading?: boolean;
-}
+  useEffect(() => {
+    if (provider) {
+      setFormData({
+        name: provider.name,
+        config: provider.config || {},
+        enabled: provider.enabled,
+        priority: provider.priority
+      });
+      setErrors({});
+    }
+  }, [provider]);
 
-interface ProviderUpdateData {
-  [key: string]: string | boolean;
-  webhookSecret: string;
-  enabled: boolean;
-}
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!provider) return;
 
-export const UpdateProviderModal: React.FC<UpdateProviderModalProps> = ({
-  isOpen,
-  onClose,
-  onSubmit,
-  provider,
-  loading = false
-}) => {
-  const getProviderFields = (providerName: string) => {
-    switch (providerName.toLowerCase()) {
-      case 'stripe':
-        return [
-          { key: 'publishableKey', label: 'Publishable Key', placeholder: 'pk_live_...' },
-          { key: 'secretKey', label: 'Secret Key', placeholder: 'sk_live_...' }
-        ];
-      case 'paystack':
-        return [
-          { key: 'publicKey', label: 'Public Key', placeholder: 'pk_live_...' },
-          { key: 'secretKey', label: 'Secret Key', placeholder: 'sk_live_...' }
-        ];
-      case 'flutterwave':
-        return [
-          { key: 'clientId', label: 'Client ID', placeholder: 'FLWPUBK_...' },
-          { key: 'clientSecret', label: 'Client Secret', placeholder: 'FLWSECK_...' },
-          { key: 'encryptionKey', label: 'Encryption Key', placeholder: 'FLWSECK_...' }
-        ];
-      default:
-        return [
-          { key: 'apiKey', label: 'API Key', placeholder: 'Enter API key' }
-        ];
+    const validationErrors = validateProviderConfig(provider.type, formData.config);
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = 'Provider name is required';
+    }
+
+    validationErrors.forEach(error => {
+      const field = error.split(' ')[0].toLowerCase();
+      newErrors[field] = error;
+    });
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await providerService.updateProvider(provider.id!, {
+        name: formData.name,
+        configuration: formData.config,
+        isEnabled: formData.enabled
+      });
+      
+      handleSuccess();
+    } catch (error) {
+      const validationErrors = getValidationErrors(error);
+      if (validationErrors.length > 0) {
+        const fieldErrors: Record<string, string> = {};
+        validationErrors.forEach(({ field, message }) => {
+          fieldErrors[field] = message;
+        });
+        setErrors(fieldErrors);
+      } else {
+        setErrors({ general: getErrorMessage(error) });
+        handleError(error);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const providerFields = getProviderFields(provider?.name || '');
-  
-  const [formData, setFormData] = useState<ProviderUpdateData>(() => {
-    const initialData: ProviderUpdateData = {
-      webhookSecret: '',
-      enabled: provider?.enabled || false
-    };
-    
-    providerFields.forEach(field => {
-      initialData[field.key] = provider?.apiKey || '';
-    });
-    
-    return initialData;
-  });
-  const [showApiKey] = useState(false);
-  const [testingConnection, setTestingConnection] = useState(false);
-
-  if (!provider) return null;
-
-  const webhookUrl = `https://api.paybridge.com/webhooks/${provider.name.toLowerCase()}`;
-
-  const handleTestConnection = async () => {
-    setTestingConnection(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setTestingConnection(false);
-  };
-
-  const handleSubmit = () => {
-    onSubmit(formData);
-  };
+  if (!isOpen || !provider) return null;
 
   return (
-    <FormModal
-      isOpen={isOpen}
-      onClose={onClose}
-      onSubmit={handleSubmit}
-      title={`Update ${provider.name} Configuration`}
-      submitText="Save Changes"
-      loading={loading}
-      size="lg"
-    >
-      <div className="space-y-5">
-        <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl">
-          <img src={provider.logo} alt={provider.name} className="w-8 h-8" />
-          <div>
-            <h4 className="font-semibold text-slate-900">{provider.name}</h4>
-            <p className="text-sm text-slate-600">{provider.transactions} transactions • {provider.volume}</p>
-          </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Update Provider</h2>
+          <button onClick={close} className="text-gray-400 hover:text-gray-600">
+            <X size={24} />
+          </button>
         </div>
 
-        {providerFields.map((field) => (
-          <Input
-            key={field.key}
-            label={field.label}
-            type="password"
-            value={formData[field.key] as string || ''}
-            onChange={(e) => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
-            placeholder={field.placeholder}
-            required
-            hint="This will be encrypted and stored securely"
-          />
-        ))}
-
-        <Input
-          label="Webhook Secret"
-          type="password"
-          value={formData.webhookSecret}
-          onChange={(e) => setFormData(prev => ({ ...prev, webhookSecret: e.target.value }))}
-          placeholder="Webhook signing secret"
-          required
-          hint="Used to verify webhook authenticity"
-        />
-
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">Webhook URL</label>
-          <div className="flex gap-2">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Provider Name *
+            </label>
             <input
               type="text"
-              value={webhookUrl}
-              readOnly
-              className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-600"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                errors.name ? 'border-red-300' : 'border-gray-300'
+              }`}
             />
-            <Button 
-              variant="outline" 
-              icon={Copy}
-              onClick={() => navigator.clipboard.writeText(webhookUrl)}
+            {errors.name && <p className="text-sm text-red-600 mt-1">{errors.name}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Provider Type
+            </label>
+            <input
+              type="text"
+              value={provider.type}
+              disabled
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Priority
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={formData.priority}
+              onChange={(e) => setFormData(prev => ({ ...prev, priority: parseInt(e.target.value) || 1 }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+
+          <div className="flex items-center space-x-3">
+            <input
+              type="checkbox"
+              id="enabled"
+              checked={formData.enabled}
+              onChange={(e) => setFormData(prev => ({ ...prev, enabled: e.target.checked }))}
+              className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+            />
+            <label htmlFor="enabled" className="text-sm font-medium text-gray-700">
+              Enable Provider
+            </label>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-3">Configuration</h3>
+            <ProviderConfigForm
+              providerType={provider.type}
+              config={formData.config}
+              onChange={(config) => setFormData(prev => ({ ...prev, config }))}
+              errors={errors}
+            />
+          </div>
+
+          {errors.general && (
+            <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+              {errors.general}
+            </div>
+          )}
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={close}
+              className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
-              Copy
-            </Button>
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {isLoading ? 'Updating...' : 'Update Provider'}
+            </button>
           </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            id="enabled"
-            checked={formData.enabled}
-            onChange={(e) => setFormData(prev => ({ ...prev, enabled: e.target.checked }))}
-            className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
-          />
-          <label htmlFor="enabled" className="text-sm font-medium text-slate-700">
-            Enable this provider for payment processing
-          </label>
-        </div>
-
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <div className="flex items-start gap-3">
-            <Shield className="text-blue-600 mt-0.5 flex-shrink-0" size={20} />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-blue-900">Test Connection</p>
-              <p className="text-xs text-blue-700 mt-1 mb-3">
-                Verify your credentials are working correctly
-              </p>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleTestConnection}
-                loading={testingConnection}
-              >
-                Test Connection
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {!formData.enabled && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="text-amber-600 mt-0.5 flex-shrink-0" size={20} />
-              <div>
-                <p className="text-sm font-medium text-amber-900">Provider Disabled</p>
-                <p className="text-xs text-amber-700 mt-1">
-                  This provider will not be used for new payments until enabled
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+        </form>
       </div>
-    </FormModal>
+    </div>
   );
 };

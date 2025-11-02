@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Plus, RefreshCw, MoreHorizontal, CheckCircle, AlertTriangle, Search, Activity } from 'lucide-react';
 import { useModalContext } from '../../../contexts/ModalContext';
 import { Card } from '../../../components/common/Card';
 import { Button } from '../../../components/common/Button';
+import { DebouncedSearchInput } from '../../../components/common/DebouncedSearchInput';
+import { useSearchState } from '../../../hooks/useSearchState';
 
 export const ProvidersTab: React.FC = () => {
   const { openModal } = useModalContext();
+  const { debouncedQuery, handleSearch, isSearching } = useSearchState({ delay: 300 });
   const [providers] = useState([
     { 
       id: 'stripe', 
@@ -42,7 +45,13 @@ export const ProvidersTab: React.FC = () => {
     }
   ]);
 
-  const activeProviders = providers.filter(p => p.status === 'ACTIVE').length;
+  const filteredProviders = useMemo(() => {
+    return providers.filter(provider => 
+      provider.name.toLowerCase().includes(debouncedQuery.toLowerCase())
+    );
+  }, [providers, debouncedQuery]);
+
+  const activeProviders = filteredProviders.filter(p => p.status === 'ACTIVE').length;
 
   return (
     <div className="space-y-6">
@@ -112,19 +121,18 @@ export const ProvidersTab: React.FC = () => {
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900">Connected Providers</h2>
           <div className="flex items-center gap-2">
-            <div className="relative">
-              <input 
-                type="text" 
-                placeholder="Search providers..."
-                className="pl-8 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 w-48"
-              />
-              <Search className="absolute left-2.5 top-2.5 text-slate-400" size={14} />
-            </div>
+            <DebouncedSearchInput
+              placeholder="Search providers..."
+              onSearch={handleSearch}
+              delay={300}
+              className="w-48"
+              isLoading={isSearching}
+            />
           </div>
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {providers.map((provider) => (
+          {filteredProviders.map((provider) => (
             <Card key={provider.id} className="p-5 hover:shadow-md transition-all duration-200 group">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-4">

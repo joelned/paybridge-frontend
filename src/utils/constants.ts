@@ -1,5 +1,3 @@
-export const API_BASE_URL = 'http://localhost:8080/api/v1';
-
 export const colors = {
   primary: '#6366f1',
   primaryDark: '#4f46e5',

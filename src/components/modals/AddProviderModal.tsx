@@ -1,187 +1,227 @@
-// src/components/modals/AddProviderModal.tsx
-import React, { useState } from 'react';
-import { Shield, AlertCircle } from 'lucide-react';
-import { FormModal } from './FormModal';
-import { Input } from '../common/Input';
-import { Select } from '../common/Select';
+import React from 'react';
+import { providerService } from '../../services';
+import { useModal } from '../../hooks/useModal';
+import { useForm } from '../../hooks/useForm';
+import { AccessibleModal } from '../common/AccessibleModal';
+import { LoadingOverlay } from '../common/LoadingOverlay';
+import { FormField, FormSelect, FormCheckbox } from '../forms';
+import { createProviderSchema, CreateProviderFormData } from '../../validation/providerSchemas';
+import { useFocusManagement } from '../../hooks/useAccessibility';
 
-interface AddProviderModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (data: ProviderConfig) => void;
-  loading?: boolean;
-}
+const providerTypeOptions = [
+  { value: 'STRIPE', label: 'Stripe' },
+  { value: 'PAYSTACK', label: 'Paystack' },
+  { value: 'FLUTTERWAVE', label: 'Flutterwave' }
+];
 
-interface ProviderConfig {
-  provider: string;
-  [key: string]: string | boolean;
-  webhookSecret: string;
-  testMode: boolean;
-}
+export const AddProviderModal: React.FC = () => {
+  const { isOpen, close, handleSuccess, handleError } = useModal('addProvider');
+  const { focusRef, focusFirst } = useFocusManagement();
+  const {
+    control,
+    handleSubmit,
+    watch,
+    formState: { isSubmitting }
+  } = useForm<CreateProviderFormData>({
+    schema: createProviderSchema,
+    defaultValues: {
+      name: '',
+      type: 'STRIPE',
+      priority: 1,
+      enabled: true,
+      config: {
+        apiKey: '',
+        secretKey: '',
+        webhookSecret: '',
+        testMode: true
+      }
+    }
+  });
+  
+  const selectedType = watch('type');
+  
+  React.useEffect(() => {
+    if (isOpen) {
+      setTimeout(focusFirst, 100);
+    }
+  }, [isOpen, focusFirst]);
 
-export const AddProviderModal: React.FC<AddProviderModalProps> = ({
-  isOpen,
-  onClose,
-  onSubmit,
-  loading = false
-}) => {
-  const getProviderFields = (providerName: string) => {
-    switch (providerName.toLowerCase()) {
-      case 'stripe':
-        return [
-          { key: 'publishableKey', label: 'Publishable Key', placeholder: 'pk_test_...' },
-          { key: 'secretKey', label: 'Secret Key', placeholder: 'sk_test_...' }
-        ];
-      case 'paystack':
-        return [
-          { key: 'publicKey', label: 'Public Key', placeholder: 'pk_test_...' },
-          { key: 'secretKey', label: 'Secret Key', placeholder: 'sk_test_...' }
-        ];
-      case 'flutterwave':
-        return [
-          { key: 'clientId', label: 'Client ID', placeholder: 'FLWPUBK_TEST-...' },
-          { key: 'clientSecret', label: 'Client Secret', placeholder: 'FLWSECK_TEST-...' },
-          { key: 'encryptionKey', label: 'Encryption Key', placeholder: 'FLWSECK_TEST...' }
-        ];
-      default:
-        return [
-          { key: 'apiKey', label: 'API Key', placeholder: 'Enter API key' }
-        ];
+  const onSubmit = async (data: CreateProviderFormData) => {
+    try {
+      await providerService.createProvider({
+        name: data.name,
+        type: data.type,
+        configuration: data.config,
+        supportedCurrencies: ['USD'],
+        supportedCountries: ['US'],
+        fees: { percentage: 0, fixed: 0, currency: 'USD' }
+      });
+      
+      handleSuccess();
+    } catch (error) {
+      handleError(error);
     }
   };
 
-  const [formData, setFormData] = useState<ProviderConfig>(() => {
-    const initialData: ProviderConfig = {
-      provider: '',
-      webhookSecret: '',
-      testMode: true
-    };
-    return initialData;
-  });
-
-  const providerFields = getProviderFields(formData.provider);
-
-  const [showApiKey] = useState(false);
-
-  const availableProviders = [
-    { value: '', label: 'Select a provider...' },
-    { value: 'stripe', label: 'Stripe' },
-    { value: 'flutterwave', label: 'Flutterwave' },
-    { value: 'paystack', label: 'Paystack' }
-  ];
-
-  const getWebhookUrl = () => {
-    if (!formData.provider) return '';
-    return `https://api.paybridge.com/webhooks/${formData.provider}`;
-  };
-
-  const getProviderDocs = () => {
-    const docs = {
-      stripe: 'https://stripe.com/docs/api',
-      flutterwave: 'https://developer.flutterwave.com/docs',
-      paystack: 'https://paystack.com/docs/api/'
-    };
-    return docs[formData.provider as keyof typeof docs] || '#';
-  };
-
-  const handleSubmit = () => {
-    onSubmit(formData);
-  };
-
   return (
-    <FormModal
+    <AccessibleModal
       isOpen={isOpen}
-      onClose={onClose}
-      onSubmit={handleSubmit}
+      onClose={close}
       title="Add Payment Provider"
-      submitText="Add Provider"
-      loading={loading}
-      size="lg"
+      size="md"
     >
-      <div className="space-y-5">
-        <Select
-          label="Payment Provider"
-          value={formData.provider}
-          onChange={(e) => setFormData(prev => ({ ...prev, provider: e.target.value }))}
-          options={availableProviders}
-          required
-        />
+      <div className="relative" ref={focusRef}>
+        <LoadingOverlay isVisible={isSubmitting} text="Adding provider..." />
+        
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            name="name"
+            control={control}
+            label="Provider Name"
+            placeholder="e.g., My Stripe Account"
+            required
+          />
 
-        {formData.provider && (
-          <>
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-              <div className="flex items-start gap-3">
-                <Shield className="text-blue-600 mt-0.5 flex-shrink-0" size={20} />
-                <div>
-                  <p className="text-sm font-medium text-blue-900">Setup Instructions</p>
-                  <p className="text-xs text-blue-700 mt-1">
-                    1. Get your {providerFields.map(f => f.label.toLowerCase()).join(', ')} from your {formData.provider} dashboard<br/>
-                    2. Configure the webhook URL: <code className="bg-blue-100 px-1 rounded">{getWebhookUrl()}</code><br/>
-                    3. Test the connection before going live
-                  </p>
-                  <a 
-                    href={getProviderDocs()} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-600 hover:text-blue-800 underline mt-2 inline-block"
-                  >
-                    View {formData.provider} documentation →
-                  </a>
-                </div>
-              </div>
-            </div>
+          <FormSelect
+            name="type"
+            control={control}
+            label="Provider Type"
+            options={providerTypeOptions}
+            required
+          />
 
-            {providerFields.map((field) => (
-              <Input
-                key={field.key}
-                label={field.label}
-                type="password"
-                value={formData[field.key] as string || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
-                placeholder={field.placeholder}
-                required
-                hint="This will be encrypted and stored securely"
-              />
-            ))}
+          <FormField
+            name="priority"
+            control={control}
+            label="Priority"
+            type="number"
+            required
+          />
 
-            <Input
-              label="Webhook Secret"
-              type="password"
-              value={formData.webhookSecret}
-              onChange={(e) => setFormData(prev => ({ ...prev, webhookSecret: e.target.value }))}
-              placeholder="Webhook signing secret"
-              required
-              hint="Used to verify webhook authenticity"
-            />
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium text-gray-700">Configuration</h3>
+            
+            {selectedType === 'STRIPE' && (
+              <>
+                <FormField
+                  name="config.apiKey"
+                  control={control}
+                  label="Publishable Key"
+                  placeholder="pk_test_..."
+                  required
+                />
+                <FormField
+                  name="config.secretKey"
+                  control={control}
+                  label="Secret Key"
+                  type="password"
+                  placeholder="sk_test_..."
+                  required
+                />
+                <FormField
+                  name="config.webhookSecret"
+                  control={control}
+                  label="Webhook Secret"
+                  type="password"
+                  placeholder="whsec_..."
+                  required
+                />
+                <FormCheckbox
+                  name="config.testMode"
+                  control={control}
+                  label="Test Mode"
+                />
+              </>
+            )}
 
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="testMode"
-                checked={formData.testMode}
-                onChange={(e) => setFormData(prev => ({ ...prev, testMode: e.target.checked }))}
-                className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
-              />
-              <label htmlFor="testMode" className="text-sm font-medium text-slate-700">
-                Enable test mode (recommended for initial setup)
-              </label>
-            </div>
+            {selectedType === 'PAYSTACK' && (
+              <>
+                <FormField
+                  name="config.publicKey"
+                  control={control}
+                  label="Public Key"
+                  placeholder="pk_test_..."
+                  required
+                />
+                <FormField
+                  name="config.secretKey"
+                  control={control}
+                  label="Secret Key"
+                  type="password"
+                  placeholder="sk_test_..."
+                  required
+                />
+                <FormCheckbox
+                  name="config.testMode"
+                  control={control}
+                  label="Test Mode"
+                />
+              </>
+            )}
 
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="text-amber-600 mt-0.5 flex-shrink-0" size={20} />
-                <div>
-                  <p className="text-sm font-medium text-amber-900">Important</p>
-                  <p className="text-xs text-amber-700 mt-1">
-                    After adding this provider, it will be available for payment routing. 
-                    Make sure to test thoroughly before processing live transactions.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+            {selectedType === 'FLUTTERWAVE' && (
+              <>
+                <FormField
+                  name="config.publicKey"
+                  control={control}
+                  label="Public Key"
+                  placeholder="FLWPUBK_TEST-..."
+                  required
+                />
+                <FormField
+                  name="config.secretKey"
+                  control={control}
+                  label="Secret Key"
+                  type="password"
+                  placeholder="FLWSECK_TEST-..."
+                  required
+                />
+                <FormField
+                  name="config.encryptionKey"
+                  control={control}
+                  label="Encryption Key"
+                  type="password"
+                  required
+                />
+                <FormCheckbox
+                  name="config.testMode"
+                  control={control}
+                  label="Test Mode"
+                />
+              </>
+            )}
+          </div>
+
+          <FormCheckbox
+            name="enabled"
+            control={control}
+            label="Enable Provider"
+          />
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={close}
+              className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              aria-describedby={isSubmitting ? 'submit-status' : undefined}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            >
+              {isSubmitting ? 'Adding...' : 'Add Provider'}
+            </button>
+            {isSubmitting && (
+              <span id="submit-status" className="sr-only" aria-live="polite">
+                Adding provider, please wait
+              </span>
+            )}
+          </div>
+        </form>
       </div>
-    </FormModal>
+    </AccessibleModal>
   );
 };

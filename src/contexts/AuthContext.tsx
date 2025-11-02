@@ -58,7 +58,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const refreshUser = async (): Promise<void> => {
-    const refreshedUser = await authService.refreshUser();
+    const refreshedUser = await authService.getCurrentUser();
     setUser(refreshedUser);
   };
 

@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Plus, Search, Copy, Eye, MoreHorizontal } from 'lucide-react';
 import { Button } from '../../../components/common/Button';
 import { Card } from '../../../components/common/Card';
 import { Badge } from '../../../components/common/Badge';
 import { useModalContext } from '../../../contexts/ModalContext';
 import { useToast } from '../../../contexts/ToastContext';
+import { DebouncedSearchInput } from '../../../components/common/DebouncedSearchInput';
+import { useSearchState } from '../../../hooks/useSearchState';
 
 export const PaymentLinksTab: React.FC = () => {
   const { openModal } = useModalContext();
   const { showToast } = useToast();
-  const [searchTerm, setSearchTerm] = useState('');
+  const { debouncedQuery, handleSearch, isSearching } = useSearchState({ delay: 300 });
   const [paymentLinks] = useState([
     {
       id: 'link_1234',
@@ -49,10 +51,12 @@ export const PaymentLinksTab: React.FC = () => {
     DISABLED: 'danger'
   };
 
-  const filteredLinks = paymentLinks.filter(link =>
-    link.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    link.id.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredLinks = useMemo(() => {
+    return paymentLinks.filter(link =>
+      link.title.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
+      link.id.toLowerCase().includes(debouncedQuery.toLowerCase())
+    );
+  }, [paymentLinks, debouncedQuery]);
 
   return (
     <div className="space-y-6">
@@ -68,16 +72,13 @@ export const PaymentLinksTab: React.FC = () => {
 
       <Card className="p-6">
         <div className="flex items-center gap-4 mb-6">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-            <input
-              type="text"
-              placeholder="Search payment links..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-            />
-          </div>
+          <DebouncedSearchInput
+            placeholder="Search payment links..."
+            onSearch={handleSearch}
+            delay={300}
+            className="flex-1 max-w-md"
+            isLoading={isSearching}
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

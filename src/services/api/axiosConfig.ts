@@ -1,6 +1,7 @@
 import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+import { env } from '../../config/env';
+import { handleApiError } from '../../utils/errorHandler';
+import type { ApiResponse } from '../../types/api';
 
 let onAuthError: (() => void) | null = null;
 let isLoggingOut = false;
@@ -20,7 +21,7 @@ export const setAuthInterceptors = (authErrorHandler: () => void) => {
 };
 
 export const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: env.apiUrl,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -28,18 +29,27 @@ export const axiosInstance = axios.create({
   withCredentials: true, // Include cookies in requests
 });
 
-// Response interceptor - handle 401 errors
+// Response interceptor - transform responses and handle errors
 axiosInstance.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Transform successful responses to extract data
+    const apiResponse = response.data as ApiResponse;
+    if (apiResponse && typeof apiResponse === 'object' && 'success' in apiResponse) {
+      // Return the data field for successful responses
+      response.data = apiResponse.data;
+    }
+    return response;
+  },
   (error) => {
-    // Only trigger auth error for actual authentication failures
-    // Don't trigger on network errors or server errors
+    // Handle authentication errors
     if (error.response?.status === 401 && onAuthError) {
-      // Add a small delay to prevent multiple rapid logout calls
       setTimeout(() => {
         onAuthError();
       }, 100);
     }
-    return Promise.reject(error);
+    
+    // Transform error to ApiError
+    const apiError = handleApiError(error);
+    return Promise.reject(apiError);
   }
 );

@@ -1,3 +1,5 @@
+export { Currency } from '../utils/currencyFormatter';
+
 export interface User {
   id: string;
   email: string;
@@ -15,7 +17,8 @@ export interface ApiResponse<T> {
 export interface Payment {
   id: string;
   customer: string;
-  amount: string;
+  amount: number;
+  currency: string;
   status: 'SUCCEEDED' | 'PROCESSING' | 'FAILED' | 'PENDING' | 'REFUNDED';
   provider: string;
   date: string;
@@ -30,7 +33,8 @@ export interface Provider {
   color: string;
   apiKey: string;
   transactions: number;
-  volume: string;
+  volume: number;
+  currency: string;
 }
 
 export interface PaymentLink {

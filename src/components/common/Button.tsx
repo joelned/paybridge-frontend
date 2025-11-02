@@ -21,7 +21,7 @@ export const Button: React.FC<ButtonProps> = ({
   type = 'button',
   ...props
 }) => {
-  const baseClasses = 'font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white';
+  const baseClasses = 'font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white disabled:cursor-not-allowed';
   
   const variants = {
     primary: 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 active:from-blue-800 active:to-indigo-800 shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 focus-visible:ring-blue-500/50',
@@ -40,11 +40,14 @@ export const Button: React.FC<ButtonProps> = ({
 
   const isDisabled = disabled || loading;
   
+  const hasOnlyIcon = Icon && !children;
+  
   return (
     <button
       {...props}
       type={type}
       disabled={isDisabled}
+      aria-label={hasOnlyIcon ? props['aria-label'] || 'Button' : undefined}
       className={`
         ${baseClasses} 
         ${variants[variant]} 
@@ -56,7 +59,7 @@ export const Button: React.FC<ButtonProps> = ({
       {loading ? (
         <>
           <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
-          <span className="opacity-75">Loading...</span>
+          <span className="opacity-75">{typeof children === 'string' ? children : 'Loading...'}</span>
         </>
       ) : (
         <>

@@ -1,4 +1,10 @@
-// src/contexts/ModalContext.tsx
+/**
+ * Modal Context Provider
+ * 
+ * Provides modal state and actions to the entire app.
+ * Renders all modal components and manages their lifecycle.
+ */
+
 import React, { createContext, useContext } from 'react';
 import { useModals } from '../hooks/useModals';
 import { ModalProvider } from '../components/modals/ModalProvider';

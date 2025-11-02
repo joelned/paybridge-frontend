@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Plus, Search, Download, Eye, RefreshCw } from 'lucide-react';
 import { Button } from '../../../components/common/Button';
 import { SectionHeader } from '../../../components/section/SectionHeader';
@@ -6,11 +6,13 @@ import { Toolbar } from '../../../components/layout/Toolbar';
 import { Card } from '../../../components/common/Card';
 import { Badge } from '../../../components/common/Badge';
 import { useModalContext } from '../../../contexts/ModalContext';
+import { DebouncedSearchInput } from '../../../components/common/DebouncedSearchInput';
+import { useSearchState } from '../../../hooks/useSearchState';
 import type { Payment } from '../../../types';
 
 export const PaymentsTab: React.FC = () => {
   const { openModal } = useModalContext();
-  const [searchTerm, setSearchTerm] = useState('');
+  const { debouncedQuery, handleSearch, isSearching } = useSearchState({ delay: 300 });
   const [filterStatus, setFilterStatus] = useState('all');
 
   const payments: Payment[] = [
@@ -28,12 +30,14 @@ export const PaymentsTab: React.FC = () => {
     REFUNDED: 'default'
   };
 
-  const filteredPayments = payments.filter(payment => {
-    const matchesSearch = payment.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         payment.id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || payment.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredPayments = useMemo(() => {
+    return payments.filter(payment => {
+      const matchesSearch = payment.customer.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
+                           payment.id.toLowerCase().includes(debouncedQuery.toLowerCase());
+      const matchesStatus = filterStatus === 'all' || payment.status === filterStatus;
+      return matchesSearch && matchesStatus;
+    });
+  }, [payments, debouncedQuery, filterStatus]);
 
   return (
     <div className="space-y-6">
@@ -44,16 +48,13 @@ export const PaymentsTab: React.FC = () => {
 
       <Card padding="lg">
         <Toolbar>
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-            <input
-              type="text"
-              placeholder="Search by customer or ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200"
-            />
-          </div>
+          <DebouncedSearchInput
+            placeholder="Search by customer or ID..."
+            onSearch={handleSearch}
+            delay={300}
+            className="flex-1 max-w-md"
+            isLoading={isSearching}
+          />
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}

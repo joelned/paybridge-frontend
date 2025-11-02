@@ -1,23 +1,50 @@
 import React from 'react';
-import type { StatCardProps } from '../../types';
-import { Card } from './Card';
+import { LoadingSkeleton } from './LoadingSkeleton';
 
-export const StatCard: React.FC<StatCardProps> = ({ title, value, change, icon: Icon, trend = 'up', subtitle }) => (
-  <Card hover className="p-6">
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-sm text-gray-600 mb-1">{title}</p>
-        <p className="text-2xl font-bold text-gray-900">{value}</p>
-        {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
+interface Props {
+  title: string;
+  value: string | number;
+  change?: string;
+  trend?: 'up' | 'down' | 'neutral';
+  icon?: React.ComponentType<any>;
+  loading?: boolean;
+  className?: string;
+}
+
+export const StatCard: React.FC<Props> = ({
+  title,
+  value,
+  change,
+  trend = 'neutral',
+  icon: Icon,
+  loading = false,
+  className = ''
+}) => {
+  if (loading) {
+    return <LoadingSkeleton variant="stat" className={className} />;
+  }
+
+  const trendColors = {
+    up: 'text-green-600',
+    down: 'text-red-600',
+    neutral: 'text-slate-600'
+  };
+
+  return (
+    <div className={`bg-white rounded-2xl border border-slate-200 p-6 hover:shadow-lg transition-all duration-200 ${className}`}>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-medium text-slate-600">{title}</h3>
+        {Icon && <Icon className="w-5 h-5 text-slate-400" />}
+      </div>
+      
+      <div className="space-y-2">
+        <p className="text-2xl font-bold text-slate-900">{value}</p>
         {change && (
-          <p className={`text-sm mt-2 ${trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
-            {trend === 'up' ? '↑' : '↓'} {change}
+          <p className={`text-sm font-medium ${trendColors[trend]}`}>
+            {change}
           </p>
         )}
       </div>
-      <div className={`p-3 rounded-full ${trend === 'up' ? 'bg-green-100' : 'bg-indigo-100'}`}>
-        <Icon className={trend === 'up' ? 'text-green-600' : 'text-indigo-600'} size={24} />
-      </div>
     </div>
-  </Card>
-);
+  );
+};

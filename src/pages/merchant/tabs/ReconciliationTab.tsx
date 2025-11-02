@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { RefreshCw, Download, AlertTriangle, CheckCircle, TrendingUp, Clock, Search, Filter, MoreHorizontal, Eye, RotateCcw, AlertCircle } from 'lucide-react';
 import { Button } from '../../../components/common/Button';
 import { Card } from '../../../components/common/Card';
 import { Badge } from '../../../components/common/Badge';
 import { useModalContext } from '../../../contexts/ModalContext';
+import { DebouncedSearchInput } from '../../../components/common/DebouncedSearchInput';
+import { useSearchState } from '../../../hooks/useSearchState';
 
 export const ReconciliationTab: React.FC = () => {
   const { openModal } = useModalContext();
+  const { debouncedQuery, handleSearch, isSearching } = useSearchState({ delay: 500 });
   const [reconciliations] = useState([
     {
       id: 'recon_001',
@@ -90,9 +93,16 @@ export const ReconciliationTab: React.FC = () => {
     return status.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  const totalMatched = reconciliations.reduce((sum, r) => sum + r.matched, 0);
-  const totalUnmatched = reconciliations.reduce((sum, r) => sum + r.unmatched, 0);
-  const totalDiscrepancies = reconciliations.reduce((sum, r) => sum + r.discrepancies, 0);
+  const filteredReconciliations = useMemo(() => {
+    return reconciliations.filter(recon =>
+      recon.provider.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
+      recon.id.toLowerCase().includes(debouncedQuery.toLowerCase())
+    );
+  }, [reconciliations, debouncedQuery]);
+
+  const totalMatched = filteredReconciliations.reduce((sum, r) => sum + r.matched, 0);
+  const totalUnmatched = filteredReconciliations.reduce((sum, r) => sum + r.unmatched, 0);
+  const totalDiscrepancies = filteredReconciliations.reduce((sum, r) => sum + r.discrepancies, 0);
   const overallAccuracy = totalMatched + totalUnmatched > 0 ? ((totalMatched / (totalMatched + totalUnmatched)) * 100) : 0;
 
   return (
@@ -224,14 +234,13 @@ export const ReconciliationTab: React.FC = () => {
                 <p className="text-slate-600 text-sm font-medium mt-1">Recent transaction matching results</p>
               </div>
               <div className="flex items-center gap-3">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
-                  <input 
-                    type="text" 
-                    placeholder="Search reconciliations..."
-                    className="pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200"
-                  />
-                </div>
+                <DebouncedSearchInput
+                  placeholder="Search reconciliations..."
+                  onSearch={handleSearch}
+                  delay={500}
+                  className="w-64"
+                  isLoading={isSearching}
+                />
                 <Button variant="outline" icon={Filter} size="sm" className="shadow-sm">
                   Filter
                 </Button>
@@ -256,7 +265,7 @@ export const ReconciliationTab: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {reconciliations.map((recon, index) => {
+                {filteredReconciliations.map((recon, index) => {
                   const statusConfig = getStatusConfig(recon.status);
                   return (
                     <tr key={recon.id} className="group hover:bg-slate-50/50 transition-colors duration-150">

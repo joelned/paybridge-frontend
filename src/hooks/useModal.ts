@@ -1,19 +1,40 @@
-// src/hooks/useModal.ts
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useModalContext } from '../contexts/ModalContext';
+import { ModalId, ModalCallbacks } from '../types/modal';
 
-export interface UseModalReturn {
-  isOpen: boolean;
-  open: () => void;
-  close: () => void;
-  toggle: () => void;
-}
-
-export const useModal = (initialState = false): UseModalReturn => {
-  const [isOpen, setIsOpen] = useState(initialState);
-
-  const open = useCallback(() => setIsOpen(true), []);
-  const close = useCallback(() => setIsOpen(false), []);
-  const toggle = useCallback(() => setIsOpen(prev => !prev), []);
-
-  return { isOpen, open, close, toggle };
+export const useModal = (modalId: ModalId) => {
+  const { modals, openModal, closeModal } = useModalContext();
+  
+  const modal = modals[modalId];
+  
+  const open = useCallback((data?: any, callbacks?: ModalCallbacks) => {
+    openModal(modalId, data, callbacks);
+  }, [modalId, openModal]);
+  
+  const close = useCallback(() => {
+    closeModal(modalId);
+  }, [modalId, closeModal]);
+  
+  const handleSuccess = useCallback((result?: any) => {
+    if (modal.callbacks?.onSuccess) {
+      modal.callbacks.onSuccess(result);
+    }
+    close();
+  }, [modal.callbacks, close]);
+  
+  const handleError = useCallback((error: any) => {
+    if (modal.callbacks?.onError) {
+      modal.callbacks.onError(error);
+    }
+  }, [modal.callbacks]);
+  
+  return {
+    isOpen: modal.isOpen,
+    data: modal.data,
+    callbacks: modal.callbacks,
+    open,
+    close,
+    handleSuccess,
+    handleError
+  };
 };

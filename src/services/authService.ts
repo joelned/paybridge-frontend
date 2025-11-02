@@ -90,17 +90,12 @@ class AuthService {
     localStorage.setItem(this.USER_KEY, JSON.stringify(user));
   }
 
-
-
   /**
    * Get current user from local storage (no backend call)
-   * Returns cached user data from successful login
    */
   async getCurrentUser(): Promise<User | null> {
     return this.getCachedUser();
   }
-
-
 
   /**
    * Check if user is authenticated by checking cached user data

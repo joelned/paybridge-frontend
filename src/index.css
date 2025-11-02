@@ -1,6 +1,4 @@
 @import './styles/design-system.css';
-@import './styles/accessibility.css';
-@import './styles/responsive.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

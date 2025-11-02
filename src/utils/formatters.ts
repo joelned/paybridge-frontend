@@ -29,6 +29,9 @@ export const formatCurrency = (
     : `${formatted}${config.symbol}`;
 };
 
+// Legacy export for backward compatibility
+export { formatCurrency as formatCurrencyAmount };
+
 // Date formatting
 export const formatDate = (date: string | Date, format: 'short' | 'long' | 'relative' = 'short'): string => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
@@ -149,4 +152,9 @@ export const formatErrorMessage = (error: any): string => {
   if (error?.message) return error.message;
   if (error?.error) return error.error;
   return 'An unexpected error occurred';
+};
+
+// Idempotency key generation
+export const generateIdempotencyKey = (): string => {
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };

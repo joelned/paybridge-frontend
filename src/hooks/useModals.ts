@@ -19,6 +19,9 @@ export interface ModalState {
   // Settings modals
   updateBusinessInfo: { isOpen: boolean };
   
+  // Payment Links modals
+  createLink: { isOpen: boolean };
+  
   // General modals
   confirm: { isOpen: boolean; title: string; message: string; onConfirm: (() => void) | null };
   success: { isOpen: boolean; title: string; message: string };
@@ -36,6 +39,7 @@ const initialState: ModalState = {
   runReconciliation: { isOpen: false },
   investigateDiscrepancy: { isOpen: false, discrepancy: null },
   updateBusinessInfo: { isOpen: false },
+  createLink: { isOpen: false },
   confirm: { isOpen: false, title: '', message: '', onConfirm: null },
   success: { isOpen: false, title: '', message: '' },
   info: { isOpen: false, title: '', message: '' },

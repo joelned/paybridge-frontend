@@ -1,214 +1,355 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Copy, X, AlertCircle, Plus } from 'lucide-react';
-import { Button } from '../../../components/common/Button';
-import { Card } from '../../../components/common/Card';
-import { Badge } from '../../../components/common/Badge';
+import { Plus, RefreshCw, MoreHorizontal, CheckCircle, AlertTriangle, Zap, TrendingUp, Activity } from 'lucide-react';
 import { useModalContext } from '../../../contexts/ModalContext';
-import type { Provider } from '../../../types';
 
 export const ProvidersTab: React.FC = () => {
   const { openModal } = useModalContext();
-  const [providers] = useState<Provider[]>([
+  const [providers] = useState([
     { 
-      id: 1, 
+      id: 'stripe', 
       name: 'Stripe', 
-      enabled: true, 
-      logo: 'https://logo.clearbit.com/stripe.com', 
-      color: '#635BFF', 
-      apiKey: 'sk_live_51H...', 
-      transactions: 543, 
-      volume: '$45,234' 
+      status: 'ACTIVE',
+      logo: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=40&h=40&fit=crop&crop=center',
+      transactions: 1234,
+      volume: 45234,
+      successRate: 99.2,
+      responseTime: 245,
+      lastUsed: '2 hours ago',
+      health: 'excellent',
+      color: '#6366f1'
     },
     { 
-      id: 2, 
+      id: 'paypal', 
       name: 'PayPal', 
-      enabled: true, 
-      logo: 'https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg', 
-      color: '#00457C', 
-      apiKey: 'AZaQ...', 
-      transactions: 412, 
-      volume: '$38,129' 
+      status: 'ACTIVE',
+      logo: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=40&h=40&fit=crop&crop=center',
+      transactions: 856,
+      volume: 38129,
+      successRate: 97.8,
+      responseTime: 312,
+      lastUsed: '1 hour ago',
+      health: 'good',
+      color: '#10b981'
     },
     { 
-      id: 3, 
+      id: 'flutterwave', 
       name: 'Flutterwave', 
-      enabled: true, 
-      logo: 'https://upload.wikimedia.org/wikipedia/commons/9/9e/Flutterwave_Logo.png', 
-      color: '#F5A623', 
-      apiKey: 'FLWSECK...', 
-      transactions: 329, 
-      volume: '$41,200' 
-    },
-    { 
-      id: 4, 
-      name: 'Paystack', 
-      enabled: false, 
-      logo: 'https://static.cdnlogo.com/logos/p/27/paystack.svg', 
-      color: '#00C3F7', 
-      apiKey: '', 
-      transactions: 0, 
-      volume: '$0' 
+      status: 'INACTIVE',
+      logo: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=40&h=40&fit=crop&crop=center',
+      transactions: 0,
+      volume: 0,
+      successRate: 0,
+      responseTime: 0,
+      lastUsed: 'Never',
+      health: 'disconnected',
+      color: '#f59e0b'
     }
   ]);
 
-  const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
-  const [apiKey, setApiKey] = useState('');
-  const [webhookSecret, setWebhookSecret] = useState('');
-  const [showKey, setShowKey] = useState(false);
-
-  const handleConfigureProvider = (provider: Provider) => {
-    setSelectedProvider(provider);
-    setApiKey(provider.apiKey);
-    setWebhookSecret('');
-  };
+  const totalVolume = providers.reduce((sum, p) => sum + p.volume, 0);
+  const activeProviders = providers.filter(p => p.status === 'ACTIVE').length;
+  const avgSuccessRate = providers.filter(p => p.status === 'ACTIVE').reduce((sum, p) => sum + p.successRate, 0) / activeProviders;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold text-gray-900">Payment Providers</h2>
-        <p className="text-sm text-gray-600 mt-1">Connect and manage your payment provider integrations</p>
+    <div className="space-y-10 animate-fade-in">
+      {/* Premium Header */}
+      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+        <div className="space-y-2">
+          <h1 className="text-heading-1">Payment Providers</h1>
+          <p className="text-body-large max-w-2xl">
+            Orchestrate payments across multiple providers with intelligent routing and real-time monitoring
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          <button className="btn-secondary">
+            <RefreshCw size={18} />
+            Sync Status
+          </button>
+          <button onClick={() => openModal('addProvider')} className="btn-primary">
+            <Plus size={18} />
+            Connect Provider
+          </button>
+        </div>
       </div>
 
-      <div className="mb-6">
-        <Button icon={Plus} onClick={() => openModal('addProvider')}>Add Provider</Button>
-      </div>
-
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {providers.map((provider) => (
-          <Card key={provider.id} className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-gray-100">
-                  <img 
-                    src={provider.logo} 
-                    alt={`${provider.name} logo`}
-                    className="w-8 h-8 object-contain"
-                  />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">{provider.name}</h3>
-                  <Badge variant={provider.enabled ? 'success' : 'default'}>
-                    {provider.enabled ? 'Active' : 'Inactive'}
-                  </Badge>
-                </div>
+      {/* Executive Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="metric-card group">
+          <div className="flex items-start justify-between mb-6">
+            <div className="space-y-2">
+              <p className="text-caption">Active Providers</p>
+              <p className="text-4xl font-extrabold text-neutral-900">{activeProviders}</p>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-success-500"></div>
+                <span className="text-body-small text-success-600 font-medium">All operational</span>
               </div>
             </div>
-            
-            {provider.enabled && (
-              <div className="space-y-2 mb-4 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Transactions</span>
-                  <span className="font-semibold text-gray-900">{provider.transactions}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Volume</span>
-                  <span className="font-semibold text-gray-900">{provider.volume}</span>
-                </div>
-              </div>
-            )}
-            
-            <div className="flex gap-2">
-              <Button 
-                variant={provider.enabled ? 'outline' : 'primary'} 
-                className="flex-1"
-                onClick={() => provider.enabled ? openModal('updateProvider', { provider }) : openModal('addProvider')}
-              >
-                {provider.enabled ? 'Configure' : 'Enable'}
-              </Button>
-              {provider.enabled && (
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => openModal('viewProviderDashboard', { provider })}
-                >
-                  View
-                </Button>
-              )}
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)' }}>
+              <CheckCircle size={28} className="text-success-600" />
             </div>
-          </Card>
-        ))}
-      </div>
-
-      {selectedProvider && (
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Configure {selectedProvider.name}
-            </h3>
-            <button onClick={() => setSelectedProvider(null)} className="text-gray-400 hover:text-gray-600">
-              <X size={24} />
-            </button>
           </div>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">API Key</label>
-              <div className="relative">
-                <input
-                  type={showKey ? 'text' : 'password'}
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="Enter your API key"
-                  className="w-full px-4 py-2.5 pr-20 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                />
-                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-1">
-                  <button
-                    onClick={() => setShowKey(!showKey)}
-                    className="p-2 text-gray-400 hover:text-gray-600"
+          <div className="flex items-center gap-2 text-success-600">
+            <TrendingUp size={16} />
+            <span className="text-sm font-semibold">+1 this month</span>
+          </div>
+        </div>
+        
+        <div className="metric-card group">
+          <div className="flex items-start justify-between mb-6">
+            <div className="space-y-2">
+              <p className="text-caption">Processing Volume</p>
+              <p className="text-4xl font-extrabold text-neutral-900">${(totalVolume / 1000).toFixed(0)}K</p>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-primary-500"></div>
+                <span className="text-body-small text-primary-600 font-medium">Last 30 days</span>
+              </div>
+            </div>
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' }}>
+              <Activity size={28} className="text-primary-600" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-success-600">
+            <TrendingUp size={16} />
+            <span className="text-sm font-semibold">+12.5% growth</span>
+          </div>
+        </div>
+        
+        <div className="metric-card group">
+          <div className="flex items-start justify-between mb-6">
+            <div className="space-y-2">
+              <p className="text-caption">Success Rate</p>
+              <p className="text-4xl font-extrabold text-neutral-900">{avgSuccessRate.toFixed(1)}%</p>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-success-500"></div>
+                <span className="text-body-small text-success-600 font-medium">Industry leading</span>
+              </div>
+            </div>
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)' }}>
+              <Zap size={28} className="text-success-600" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-success-600">
+            <TrendingUp size={16} />
+            <span className="text-sm font-semibold">+0.3% this week</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Provider Ecosystem */}
+      <div className="premium-card-elevated">
+        <div className="p-8 border-b border-neutral-100">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <h2 className="text-heading-2">Provider Ecosystem</h2>
+              <p className="text-body-small">Manage your payment processing infrastructure</p>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 bg-success-50 rounded-full">
+              <div className="w-2 h-2 bg-success-500 rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium text-success-700">All systems operational</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="p-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+            {providers.map((provider) => (
+              <div key={provider.id} className="premium-card group cursor-pointer">
+                <div className="p-6">
+                  {/* Provider Header */}
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="flex items-center gap-4">
+                      <div className="relative">
+                        <div 
+                          className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-lg"
+                          style={{ backgroundColor: provider.color }}
+                        >
+                          {provider.name[0]}
+                        </div>
+                        <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white ${
+                          provider.status === 'ACTIVE' ? 'bg-success-500' : 'bg-neutral-300'
+                        }`}></div>
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="text-heading-3">{provider.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <span className={`status-badge ${
+                            provider.status === 'ACTIVE' ? 'status-success' : 'status-neutral'
+                          }`}>
+                            {provider.status}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <button className="btn-ghost p-2">
+                      <MoreHorizontal size={18} />
+                    </button>
+                  </div>
+
+                  {/* Performance Metrics */}
+                  <div className="space-y-4 mb-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <p className="text-caption">Volume</p>
+                        <p className="text-xl font-bold text-neutral-900">
+                          ${provider.volume > 0 ? (provider.volume / 1000).toFixed(0) + 'K' : '0'}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-caption">Transactions</p>
+                        <p className="text-xl font-bold text-neutral-900">
+                          {provider.transactions.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <p className="text-caption">Success Rate</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-lg font-bold text-success-600">
+                            {provider.successRate > 0 ? provider.successRate.toFixed(1) + '%' : 'N/A'}
+                          </p>
+                          {provider.status === 'ACTIVE' && (
+                            <CheckCircle size={16} className="text-success-500" />
+                          )}
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-caption">Response Time</p>
+                        <p className="text-lg font-bold text-neutral-900">
+                          {provider.responseTime > 0 ? provider.responseTime + 'ms' : 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Health Indicator */}
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-caption">Connection Health</span>
+                      <span className={`text-sm font-semibold ${
+                        provider.health === 'excellent' ? 'text-success-600' :
+                        provider.health === 'good' ? 'text-warning-600' : 'text-error-600'
+                      }`}>
+                        {provider.health.charAt(0).toUpperCase() + provider.health.slice(1)}
+                      </span>
+                    </div>
+                    <div className="w-full bg-neutral-200 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full transition-all duration-500 ${
+                          provider.health === 'excellent' ? 'bg-success-500' :
+                          provider.health === 'good' ? 'bg-warning-500' : 'bg-error-500'
+                        }`}
+                        style={{ 
+                          width: provider.health === 'excellent' ? '100%' : 
+                                provider.health === 'good' ? '75%' : '25%' 
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3">
+                    <button 
+                      onClick={() => openModal('viewProviderDashboard', { provider })}
+                      className="flex-1 px-4 py-3 text-sm font-semibold text-neutral-700 bg-neutral-50 hover:bg-neutral-100 rounded-xl transition-all duration-200 border border-neutral-200 hover:border-neutral-300"
+                    >
+                      Analytics
+                    </button>
+                    <button 
+                      onClick={() => openModal('updateProvider', { provider })}
+                      className="flex-1 px-4 py-3 text-sm font-semibold text-primary-700 bg-primary-50 hover:bg-primary-100 rounded-xl transition-all duration-200 border border-primary-200 hover:border-primary-300"
+                    >
+                      Configure
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* System Intelligence Panel */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="premium-card-elevated">
+          <div className="p-8 border-b border-neutral-100">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center">
+                <Zap size={24} className="text-white" />
+              </div>
+              <div>
+                <h3 className="text-heading-3">Real-time Monitoring</h3>
+                <p className="text-body-small">Live provider performance metrics</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-8 space-y-6">
+            {providers.filter(p => p.status === 'ACTIVE').map((provider) => (
+              <div key={provider.id} className="flex items-center justify-between py-3 border-b border-neutral-100 last:border-0">
+                <div className="flex items-center gap-4">
+                  <div 
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-semibold text-sm"
+                    style={{ backgroundColor: provider.color }}
                   >
-                    {showKey ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
+                    {provider.name[0]}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-neutral-900">{provider.name}</p>
+                    <p className="text-xs text-neutral-500">API Response</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-neutral-900">{provider.responseTime}ms</span>
+                    <CheckCircle size={16} className="text-success-500" />
+                  </div>
+                  <p className="text-xs text-success-600 font-medium">Optimal</p>
                 </div>
               </div>
-            </div>
+            ))}
+          </div>
+        </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Webhook Secret</label>
-              <input
-                type="password"
-                value={webhookSecret}
-                onChange={(e) => setWebhookSecret(e.target.value)}
-                placeholder="Webhook signing secret"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Webhook URL</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={`https://api.paybridge.com/webhooks/${selectedProvider.name.toLowerCase()}`}
-                  readOnly
-                  className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg"
-                />
-                <Button variant="outline" icon={Copy}>Copy</Button>
+        <div className="premium-card-elevated">
+          <div className="p-8 border-b border-neutral-100">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-success-500 to-success-600 flex items-center justify-center">
+                <Activity size={24} className="text-white" />
               </div>
-              <p className="text-xs text-gray-600 mt-2">Configure this URL in your {selectedProvider.name} dashboard</p>
-            </div>
-
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="text-amber-600 mt-0.5" size={20} />
-                <div>
-                  <p className="text-sm font-medium text-amber-900">Smart Routing</p>
-                  <p className="text-xs text-amber-700 mt-1">
-                    When enabled, PayBridge will automatically route payments to this provider based on success rates, fees, and availability
-                  </p>
-                </div>
+              <div>
+                <h3 className="text-heading-3">Activity Feed</h3>
+                <p className="text-body-small">Recent provider events</p>
               </div>
-            </div>
-
-            <div className="flex gap-3">
-              <Button>Save Configuration</Button>
-              <Button variant="outline" onClick={() => setSelectedProvider(null)}>Cancel</Button>
-              {selectedProvider.enabled && (
-                <Button variant="danger">Disable Provider</Button>
-              )}
             </div>
           </div>
-        </Card>
-      )}
+          <div className="p-8 space-y-4">
+            <div className="flex items-start gap-4">
+              <div className="w-3 h-3 rounded-full bg-success-500 mt-2 flex-shrink-0"></div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-neutral-900">Stripe webhook verified</p>
+                <p className="text-xs text-neutral-500 mt-1">Connection health check passed • 2 minutes ago</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-4">
+              <div className="w-3 h-3 rounded-full bg-primary-500 mt-2 flex-shrink-0"></div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-neutral-900">PayPal transaction processed</p>
+                <p className="text-xs text-neutral-500 mt-1">$249.00 payment completed • 5 minutes ago</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-4">
+              <div className="w-3 h-3 rounded-full bg-warning-500 mt-2 flex-shrink-0"></div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-neutral-900">Flutterwave connection idle</p>
+                <p className="text-xs text-neutral-500 mt-1">No activity detected • 1 hour ago</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
+
+export default ProvidersTab;

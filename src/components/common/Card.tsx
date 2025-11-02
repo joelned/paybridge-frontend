@@ -22,30 +22,38 @@ export const Card: React.FC<CardProps> = ({
   className = '',
   ...props
 }) => {
-  const baseStyles = cn(
-    'rounded-xl',
-    variant === 'soft' ? 'bg-gray-50' : 'bg-white',
-    'border',
-    variant === 'outlined' ? 'border-gray-300' : 'border-gray-200',
-    variant === 'elevated' ? 'shadow-md' : 'shadow-sm',
-  );
+  const baseStyles = 'rounded-xl transition-all duration-200';
+  
+  const variants = {
+    default: 'bg-white border border-slate-200 shadow-sm',
+    elevated: 'bg-white border border-slate-200 shadow-lg',
+    outlined: 'bg-white border border-slate-300 shadow-none',
+    soft: 'bg-slate-50 border border-slate-200 shadow-sm'
+  };
 
-  const paddingStyles =
-    padding === 'none' ? '' : padding === 'sm' ? 'p-3' : padding === 'lg' ? 'p-6' : 'p-4';
-
-  const variantExtras = cn(
-    variant === 'elevated' && 'ring-1 ring-black/5',
-    variant === 'outlined' && 'shadow-none',
-  );
+  const paddingStyles = {
+    none: '',
+    sm: 'p-3',
+    md: 'p-4',
+    lg: 'p-6'
+  };
 
   const interactionStyles = cn(
-    interactive &&
-      'transition-shadow cursor-pointer hover:shadow-md active:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white',
-    !interactive && hover && 'hover:shadow-md transition-shadow cursor-pointer',
+    interactive && 'cursor-pointer hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 active:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:ring-offset-2',
+    !interactive && hover && 'hover:shadow-lg hover:-translate-y-0.5 cursor-pointer',
   );
 
   return (
-    <div {...props} className={cn(baseStyles, paddingStyles, variantExtras, interactionStyles, className)}>
+    <div 
+      {...props} 
+      className={cn(
+        baseStyles,
+        variants[variant as keyof typeof variants],
+        paddingStyles[padding as keyof typeof paddingStyles],
+        interactionStyles,
+        className
+      )}
+    >
       {children}
     </div>
   );

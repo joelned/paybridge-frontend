@@ -129,3 +129,5 @@ export const PaymentsTab: React.FC = () => {
     </div>
   );
 };
+
+export default PaymentsTab;

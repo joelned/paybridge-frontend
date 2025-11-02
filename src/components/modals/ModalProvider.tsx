@@ -17,6 +17,7 @@ import {
   InvestigateDiscrepancyModal,
   UpdateBusinessInfoModal
 } from './index';
+import { CreateLinkModal } from './CreateLinkModal';
 
 interface ModalProviderProps {
   children: React.ReactNode;
@@ -84,7 +85,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children, modals, 
           success('Export Started', 'Your data export is being processed. You\'ll receive a download link shortly.');
           closeModal('exportData');
         }}
-        dataType={(modals.exportData.type as 'payments' | 'reconciliation' | 'providers') || 'payments'}
+        dataType={(modals.exportData.type as 'payments' | 'reconciliation' | 'providers' | 'analytics') || 'payments'}
       />
       
       {/* Provider Modals */}
@@ -142,6 +143,17 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children, modals, 
           closeModal('updateBusinessInfo');
         }}
         currentInfo={{}}
+      />
+      
+      {/* Payment Links Modals */}
+      <CreateLinkModal
+        isOpen={modals.createLink.isOpen}
+        onClose={() => closeModal('createLink')}
+        onSubmit={(data) => {
+          console.log('Create link:', data);
+          success('Payment Link Created', 'Your payment link has been created successfully.');
+          closeModal('createLink');
+        }}
       />
     </>
   );

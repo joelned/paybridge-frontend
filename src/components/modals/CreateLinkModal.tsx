@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { FormModal } from './FormModal';
 import { Input } from '../common/Input';
+import { ModalCallbacks } from '../../contexts/ModalContext';
 
 interface CreateLinkModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: LinkData) => void;
-  loading?: boolean;
+  data?: any;
+  callbacks?: ModalCallbacks;
 }
 
 interface LinkData {
@@ -19,8 +20,8 @@ interface LinkData {
 export const CreateLinkModal: React.FC<CreateLinkModalProps> = ({
   isOpen,
   onClose,
-  onSubmit,
-  loading = false
+  data,
+  callbacks
 }) => {
   const [formData, setFormData] = useState<LinkData>({
     title: '',
@@ -34,7 +35,10 @@ export const CreateLinkModal: React.FC<CreateLinkModalProps> = ({
   };
 
   const handleSubmit = () => {
-    onSubmit(formData);
+    if (callbacks?.onSuccess) {
+      callbacks.onSuccess(formData);
+    }
+    onClose();
   };
 
   return (
@@ -44,7 +48,6 @@ export const CreateLinkModal: React.FC<CreateLinkModalProps> = ({
       onSubmit={handleSubmit}
       title="Create Payment Link"
       submitText="Create Link"
-      loading={loading}
     >
       <div className="space-y-4">
         <Input

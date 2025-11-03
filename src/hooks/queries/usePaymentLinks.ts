@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { paymentLinkService } from '../../services';
-import type { PaymentLinkFilters } from '../../services/paymentLinkService';
+import type { PaymentLinkFilters } from '../../services';
 
 export const usePaymentLinks = (filters: PaymentLinkFilters = {}) => {
   return useQuery({

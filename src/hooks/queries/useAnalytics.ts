@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { analyticsService } from '../../services';
-import type { AnalyticsFilters } from '../../services/analyticsService';
+import type { AnalyticsFilters } from '../../services';
 
 export const useDashboardAnalytics = (filters: AnalyticsFilters = {}) => {
   return useQuery({

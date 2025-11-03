@@ -14,6 +14,7 @@ interface ToastContextType {
   toasts: Toast[];
   addToast: (toast: Omit<Toast, 'id'>) => void;
   removeToast: (id: string) => void;
+  showToast: (message: string, type: 'success' | 'error' | 'warning' | 'info', title?: string) => void;
   success: (title: string, message?: string) => void;
   error: (title: string, message?: string) => void;
   warning: (title: string, message?: string) => void;
@@ -65,6 +66,14 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     addToast({ type: 'info', title, message });
   }, [addToast]);
 
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'warning' | 'info', title?: string) => {
+    addToast({ 
+      type, 
+      title: title || type.charAt(0).toUpperCase() + type.slice(1), 
+      message 
+    });
+  }, [addToast]);
+
   const getIcon = (type: Toast['type']) => {
     switch (type) {
       case 'success': return CheckCircle;
@@ -84,20 +93,28 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   return (
-    <ToastContext.Provider value={{ toasts, addToast, removeToast, success, error, warning, info }}>
+    <ToastContext.Provider value={{ toasts, addToast, removeToast, showToast, success, error, warning, info }}>
       {children}
       
       {/* Toast Container */}
-      <div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm">
-        {toasts.map((toast) => {
+      <div 
+        className="fixed top-4 right-4 z-50 space-y-2 max-w-sm pointer-events-none"
+        aria-live="polite"
+        aria-label="Notifications"
+        role="region"
+      >
+        {toasts.map((toast, index) => {
           const Icon = getIcon(toast.type);
           return (
             <div
               key={toast.id}
-              className={`p-4 rounded-xl border shadow-lg animate-slideInRight ${getColors(toast.type)}`}
+              className={`p-4 rounded-xl border shadow-lg animate-slideInRight pointer-events-auto ${getColors(toast.type)}`}
+              style={{ zIndex: 50 - index }} // Ensure proper stacking
+              role="alert"
+              aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
             >
               <div className="flex items-start gap-3">
-                <Icon size={20} className="flex-shrink-0 mt-0.5" />
+                <Icon size={20} className="flex-shrink-0 mt-0.5" aria-hidden="true" />
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm">{toast.title}</p>
                   {toast.message && (
@@ -107,8 +124,9 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 <button
                   onClick={() => removeToast(toast.id)}
                   className="flex-shrink-0 p-1 hover:bg-black/10 rounded-lg transition-colors"
+                  aria-label={`Dismiss ${toast.title} notification`}
                 >
-                  <X size={16} />
+                  <X size={16} aria-hidden="true" />
                 </button>
               </div>
             </div>

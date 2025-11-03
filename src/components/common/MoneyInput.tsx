@@ -1,6 +1,5 @@
 import React from 'react';
-import { getSupportedCurrencies, formatAmount, parseCurrency } from '../../utils/currencyFormatter';
-
+import { formatAmount, parseCurrency, getSupportedCurrencies } from '../../utils/currency';
 interface Props {
   label?: string;
   amount: number;

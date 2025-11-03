@@ -1,8 +1,9 @@
 // src/pages/merchant/tabs/OverviewTab.tsx - Refactored for consistent design system
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { DollarSign, Activity, TrendingUp, GitMerge, ArrowUpRight, ArrowDownRight, Eye, ExternalLink } from 'lucide-react';
 import { Card } from '../../../components/common/Card';
 import { Button } from '../../../components/common/Button';
+import { useOverview } from '../../../hooks/queries';
 
 // Enhanced skeleton component with consistent styling
 const Skeleton = ({ className = '', width = '100%', height = '1rem' }) => (
@@ -39,11 +40,14 @@ const StatCard = ({ title, value, change, icon: Icon, trend = 'up', subtitle }: 
   const trendColor = trend === 'up' ? 'text-emerald-600' : 'text-red-600';
   const bgColor = trend === 'up' ? 'bg-emerald-50' : 'bg-red-50';
   
+  // Fallback to DollarSign if Icon is undefined
+  const SafeIcon = Icon || DollarSign;
+  
   return (
     <Card hover className="p-6 group">
       <div className="flex items-start justify-between mb-4">
         <div className="p-3 bg-slate-100 rounded-xl group-hover:bg-slate-200 transition-colors">
-          <Icon size={20} className="text-slate-600" />
+          <SafeIcon size={20} className="text-slate-600" />
         </div>
         {change && (
           <div className={`flex items-center gap-1 px-2 py-1 rounded-full ${bgColor}`}>
@@ -65,62 +69,15 @@ const StatCard = ({ title, value, change, icon: Icon, trend = 'up', subtitle }: 
 };
 
 export const OverviewTab = () => {
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<any>(null);
+  const { data, isLoading: loading, error } = useOverview();
 
-  // Simulate data loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setData({
-        stats: [
-          { 
-            title: 'Total Revenue', 
-            value: '$124,563', 
-            change: '+12.5%', 
-            icon: DollarSign, 
-            trend: 'up' as const,
-            subtitle: 'Across all providers'
-          },
-          { 
-            title: 'Transactions', 
-            value: '1,284', 
-            change: '+8.2%', 
-            icon: Activity, 
-            trend: 'up' as const,
-            subtitle: 'Last 30 days'
-          },
-          { 
-            title: 'Success Rate', 
-            value: '98.4%', 
-            change: '+2.1%', 
-            icon: TrendingUp, 
-            trend: 'up' as const,
-            subtitle: 'With smart routing'
-          },
-          { 
-            title: 'Providers Active', 
-            value: '3/5', 
-            icon: GitMerge,
-            subtitle: 'Stripe, PayPal, Flutterwave'
-          }
-        ],
-        providerStats: [
-          { provider: 'Stripe', volume: '$45,234', transactions: 543, successRate: '99.2%', color: '#6366f1' },
-          { provider: 'PayPal', volume: '$38,129', transactions: 412, successRate: '97.8%', color: '#10b981' },
-          { provider: 'Flutterwave', volume: '$41,200', transactions: 329, successRate: '98.5%', color: '#f59e0b' }
-        ],
-        recentTransactions: [
-          { id: 'pay_1234', customer: 'john@example.com', amount: '$249.00', status: 'SUCCEEDED', provider: 'Stripe', date: '2 min ago' },
-          { id: 'pay_1235', customer: 'jane@example.com', amount: '$89.99', status: 'SUCCEEDED', provider: 'PayPal', date: '15 min ago' },
-          { id: 'pay_1236', customer: 'bob@example.com', amount: '$1,299.00', status: 'PROCESSING', provider: 'Flutterwave', date: '1 hour ago' },
-          { id: 'pay_1237', customer: 'alice@example.com', amount: '$449.50', status: 'SUCCEEDED', provider: 'Stripe', date: '2 hours ago' }
-        ]
-      });
-      setLoading(false);
-    }, 800);
-
-    return () => clearTimeout(timer);
-  }, []);
+  // Icon mapping for API data
+  const iconMap = useMemo(() => ({
+    DollarSign,
+    Activity,
+    TrendingUp,
+    GitMerge
+  }), []);
 
   const statusColors = useMemo(() => ({
     SUCCEEDED: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
@@ -128,7 +85,7 @@ export const OverviewTab = () => {
     FAILED: 'bg-red-100 text-red-800 border border-red-200',
   }), []);
 
-  if (loading) {
+  if (loading || error) {
     return (
       <div className="space-y-8">
         {/* Header skeleton */}
@@ -199,9 +156,16 @@ export const OverviewTab = () => {
       
       {/* Key metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {data.stats.map((stat: any, idx: number) => (
-          <StatCard key={idx} {...stat} />
-        ))}
+        {data.stats.map((stat: any, idx: number) => {
+          // Map icon name to actual component, fallback to DollarSign
+          const IconComponent = typeof stat.icon === 'string' 
+            ? iconMap[stat.icon as keyof typeof iconMap] || DollarSign
+            : stat.icon || DollarSign;
+          
+          return (
+            <StatCard key={idx} {...stat} icon={IconComponent} />
+          );
+        })}
       </div>
 
       {/* Provider performance */}

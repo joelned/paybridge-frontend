@@ -64,7 +64,12 @@ class AuthService {
       const response = await axiosInstance.post<LoginResponse>('/auth/login', loginRequest);
       const data = response.data;
 
-      // Create user from login response
+      // Validate required fields
+      if (!data.email) {
+        throw new ApiError('Invalid login response: missing email');
+      }
+
+      // Create user from login response with field name variations
       const userType = normalizeUserType(data.userType || data.user_type || data.type);
       const user: User = {
         id: data.id || data.email,
@@ -78,8 +83,19 @@ class AuthService {
       // Store user data locally
       this.storeUserData(user);
       return { user };
-    } catch (error) {
-      throw error instanceof ApiError ? error : new ApiError('Login failed');
+    } catch (error: any) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      
+      // Handle axios errors
+      if (error.response) {
+        const status = error.response.status;
+        const message = error.response.data?.message || 'Login failed';
+        throw new ApiError(message, error.response.data?.errors, undefined, status);
+      }
+      
+      throw new ApiError('Login failed: Network error');
     }
   }
 

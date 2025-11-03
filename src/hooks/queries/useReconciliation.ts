@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { reconciliationService } from '../../services';
-import type { ReconciliationFilters } from '../../services/reconciliationService';
+import type { ReconciliationFilters } from '../../services';
 
 export const useReconciliationRecords = (filters: ReconciliationFilters = {}) => {
   return useQuery({

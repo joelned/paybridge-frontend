@@ -1,62 +1,24 @@
-export { Currency } from '../utils/currencyFormatter';
+// Re-export core types from dedicated files
+export type { User, LoginRequest, LoginResponse } from './auth';
+export type { ApiResponse, ApiErrorResponse, ValidationError, ApiError } from './api';
 
-export interface User {
-  id: string;
-  email: string;
-  username: string;
-  userType: 'MERCHANT' | 'ADMIN';
-  businessName?: string;
-}
+// Re-export service types (avoid duplicates)
+export type {
+  // Payment types
+  Payment, CreatePaymentRequest, PaymentResponse, PaymentListResponse, PaymentFilters,
+  // Provider types  
+  PaymentProvider, CreateProviderRequest, UpdateProviderRequest, ProviderTestRequest, ProviderTestResponse,
+  // Reconciliation types
+  ReconciliationRecord, ReconciliationSummary, ReconciliationFilters, ReconciliationListResponse, StartReconciliationRequest, ReconciliationJob,
+  // Analytics types
+  AnalyticsMetrics, TimeSeriesData, PaymentAnalytics, RevenueAnalytics, CustomerAnalytics, AnalyticsFilters, DashboardAnalytics,
+  // Payment Link types
+  PaymentLink, CreatePaymentLinkRequest, UpdatePaymentLinkRequest, PaymentLinkUsage, PaymentLinkAnalytics, PaymentLinkFilters, PaymentLinkListResponse,
+  // Merchant types
+  MerchantProfile, UpdateMerchantProfileRequest, MerchantSettings, UpdateMerchantSettingsRequest, ChangePasswordRequest, MerchantVerificationDocument, MerchantStatistics
+} from '../services';
 
-export interface ApiResponse<T> {
-  data: T;
-  message?: string;
-  success: boolean;
-}
-
-export interface Payment {
-  id: string;
-  customer: string;
-  amount: number;
-  currency: string;
-  status: 'SUCCEEDED' | 'PROCESSING' | 'FAILED' | 'PENDING' | 'REFUNDED';
-  provider: string;
-  date: string;
-  idempotencyKey: string;
-}
-
-export interface Provider {
-  id: number;
-  name: string;
-  enabled: boolean;
-  logo: string;
-  color: string;
-  apiKey: string;
-  transactions: number;
-  volume: number;
-  currency: string;
-}
-
-export interface PaymentLink {
-  id: string;
-  name: string;
-  amount: string;
-  url: string;
-  clicks: number;
-  conversions: number;
-  status: 'active' | 'expired';
-}
-
-export interface ReconciliationJob {
-  id: string;
-  provider: string;
-  period: string;
-  status: 'COMPLETED' | 'IN_PROGRESS' | 'FAILED' | 'PENDING';
-  matched: number;
-  discrepancies: number;
-  date: string;
-}
-
+// Component prop types
 export interface StatCardProps {
   title: string;
   value: string;
@@ -88,22 +50,5 @@ export interface InputProps {
   icon?: React.ComponentType<any>;
 }
 
-export interface ReconciliationJob {
-  id: string;
-  provider: string;
-  period: string;
-  status: 'COMPLETED' | 'IN_PROGRESS' | 'FAILED' | 'PENDING';
-  matched: number;
-  discrepancies: number;
-  date: string;
-}
-
-export interface PaymentLink {
-  id: string;
-  name: string;
-  amount: string;
-  url: string;
-  clicks: number;
-  conversions: number;
-  status: 'active' | 'expired';
-}
+// Utility types
+export type { Currency } from '../utils/currencyFormatter';

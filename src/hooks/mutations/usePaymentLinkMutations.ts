@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { paymentLinkService } from '../../services';
-import type { CreatePaymentLinkRequest, UpdatePaymentLinkRequest } from '../../services/paymentLinkService';
+import type { CreatePaymentLinkRequest, UpdatePaymentLinkRequest } from '../../services';
 
 export const useCreatePaymentLink = () => {
   const queryClient = useQueryClient();

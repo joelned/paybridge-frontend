@@ -1,46 +1,79 @@
-import { useState, useEffect } from 'react';
-import { generateIdempotencyKey, getStoredKey, cleanupExpiredKeys } from '../utils/idempotencyKey';
+import { useState, useCallback, useEffect } from 'react';
+import { 
+  generateIdempotencyKey, 
+  storeIdempotencyKey, 
+  getStoredKey, 
+  updateKeyStatus,
+  cleanupExpiredKeys 
+} from '../utils/idempotencyKey';
+
+interface IdempotencyKeyState {
+  key: string;
+  paymentId?: string;
+  status?: string;
+  isRetry: boolean;
+}
 
 export function useIdempotencyKey() {
-  const [idempotencyKey, setIdempotencyKey] = useState<string>('');
-  const [keyStatus, setKeyStatus] = useState<'new' | 'reused' | 'expired'>('new');
+  const [keyState, setKeyState] = useState<IdempotencyKeyState | null>(null);
 
+  // Cleanup expired keys on mount
   useEffect(() => {
-    // Cleanup expired keys on mount
     cleanupExpiredKeys();
-    
-    // Generate new key
-    const newKey = generateIdempotencyKey();
-    setIdempotencyKey(newKey);
-    setKeyStatus('new');
   }, []);
 
-  const generateNewKey = () => {
-    const newKey = generateIdempotencyKey();
-    setIdempotencyKey(newKey);
-    setKeyStatus('new');
-    return newKey;
-  };
+  const generateKey = useCallback(() => {
+    const key = generateIdempotencyKey();
+    const newState: IdempotencyKeyState = {
+      key,
+      isRetry: false
+    };
+    
+    setKeyState(newState);
+    storeIdempotencyKey(key);
+    return key;
+  }, []);
 
-  const reuseKey = (key: string) => {
-    const stored = getStoredKey(key);
+  const reuseKey = useCallback((existingKey: string) => {
+    const stored = getStoredKey(existingKey);
     if (stored) {
-      setIdempotencyKey(key);
-      setKeyStatus('reused');
-      return true;
+      const newState: IdempotencyKeyState = {
+        key: existingKey,
+        paymentId: stored.paymentId,
+        status: stored.status,
+        isRetry: true
+      };
+      setKeyState(newState);
+      return existingKey;
     }
-    return false;
-  };
+    return null;
+  }, []);
 
-  const checkKeyUsage = (key: string) => {
-    return getStoredKey(key);
-  };
+  const updateStatus = useCallback((paymentId: string, status: string) => {
+    if (keyState?.key) {
+      updateKeyStatus(keyState.key, paymentId, status);
+      setKeyState(prev => prev ? { ...prev, paymentId, status } : null);
+    }
+  }, [keyState?.key]);
+
+  const resetKey = useCallback(() => {
+    setKeyState(null);
+  }, []);
+
+  const getKeyForRetry = useCallback((failedKey: string) => {
+    const stored = getStoredKey(failedKey);
+    if (stored && stored.status === 'failed') {
+      return reuseKey(failedKey);
+    }
+    return generateKey();
+  }, [reuseKey, generateKey]);
 
   return {
-    idempotencyKey,
-    keyStatus,
-    generateNewKey,
+    keyState,
+    generateKey,
     reuseKey,
-    checkKeyUsage
+    updateStatus,
+    resetKey,
+    getKeyForRetry
   };
 }

@@ -3,26 +3,36 @@ import React, { createContext, useContext, useState, useCallback, useMemo } from
 // Typed modal IDs
 export type ModalId = 
   | 'addProvider'
-  | 'editProvider'
-  | 'deleteProvider'
-  | 'paymentDetails'
-  | 'createPaymentLink'
-  | 'editPaymentLink'
-  | 'confirmAction'
+  | 'updateProvider'
+  | 'viewProviderDashboard'
+  | 'retryPayment'
+  | 'transactionDetails'
   | 'exportData'
   | 'runReconciliation'
-  | 'userSettings'
-  | 'notification';
+  | 'investigateDiscrepancy'
+  | 'updateBusinessInfo'
+  | 'createPaymentLink'
+  | 'confirmDialog'
+  | 'success'
+  | 'info'
+  | 'loading';
+
+export interface ModalCallbacks {
+  onSuccess?: (result?: any) => void;
+  onError?: (error: any) => void;
+  onClose?: () => void;
+}
 
 interface ModalState {
   id: ModalId;
   data?: any;
+  callbacks?: ModalCallbacks;
   isOpen: boolean;
 }
 
 interface ModalContextValue {
   activeModal: ModalState | null;
-  openModal: (id: ModalId, data?: any) => void;
+  openModal: (id: ModalId, data?: any, callbacks?: ModalCallbacks) => void;
   closeModal: () => void;
   updateModalData: (data: any) => void;
   isModalOpen: (id: ModalId) => boolean;
@@ -45,8 +55,8 @@ interface ModalContextProviderProps {
 export const ModalContextProvider = React.memo(({ children }: ModalContextProviderProps) => {
   const [activeModal, setActiveModal] = useState<ModalState | null>(null);
 
-  const openModal = useCallback((id: ModalId, data?: any) => {
-    setActiveModal({ id, data, isOpen: true });
+  const openModal = useCallback((id: ModalId, data?: any, callbacks?: ModalCallbacks) => {
+    setActiveModal({ id, data, callbacks, isOpen: true });
   }, []);
 
   const closeModal = useCallback(() => {

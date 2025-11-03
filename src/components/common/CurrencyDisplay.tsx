@@ -14,7 +14,8 @@ export const CurrencyDisplay: React.FC<Props> = ({
   className = '',
   showCode = false 
 }) => {
-  const formatted = formatCurrency(amount, currency);
+  const numericAmount = typeof amount === 'string' ? parseFloat(amount) || 0 : amount;
+  const formatted = formatCurrency(numericAmount, currency);
   
   return (
     <span className={className}>

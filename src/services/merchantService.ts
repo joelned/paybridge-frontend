@@ -282,6 +282,88 @@ class MerchantService {
     const response = await axiosInstance.post('/merchants/delete-account', { password });
     return response.data;
   }
+
+  /**
+   * Get overview dashboard data
+   */
+  async getOverview(): Promise<{
+    stats: Array<{
+      title: string;
+      value: string;
+      change?: string;
+      trend?: 'up' | 'down';
+      subtitle?: string;
+    }>;
+    providerStats: Array<{
+      provider: string;
+      volume: string;
+      transactions: number;
+      successRate: string;
+      color: string;
+    }>;
+    recentTransactions: Array<{
+      id: string;
+      customer: string;
+      amount: string;
+      status: string;
+      provider: string;
+      date: string;
+    }>;
+  }> {
+    const response = await axiosInstance.get('/merchants/overview');
+    return response.data;
+  }
+
+  /**
+   * Get recent transactions for overview
+   */
+  async getRecentTransactions(limit: number = 10): Promise<Array<{
+    id: string;
+    customer: string;
+    amount: string;
+    status: string;
+    provider: string;
+    date: string;
+  }>> {
+    const response = await axiosInstance.get(`/merchants/recent-transactions?limit=${limit}`);
+    return response.data;
+  }
+
+  /**
+   * Get business info for settings
+   */
+  async getBusinessInfo(): Promise<{
+    businessName: string;
+    businessType: string;
+    businessCountry: string;
+    email: string;
+  }> {
+    const response = await axiosInstance.get('/merchants/business-info');
+    return response.data;
+  }
+
+  /**
+   * Get notification settings
+   */
+  async getNotificationSettings(): Promise<{
+    email: boolean;
+    sms: boolean;
+    webhook: boolean;
+  }> {
+    const response = await axiosInstance.get('/merchants/notification-settings');
+    return response.data;
+  }
+
+  /**
+   * Get security settings
+   */
+  async getSecuritySettings(): Promise<{
+    twoFactor: boolean;
+    sessionTimeout: string;
+  }> {
+    const response = await axiosInstance.get('/merchants/security-settings');
+    return response.data;
+  }
 }
 
 export const merchantService = new MerchantService();

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { RefreshCw, Download, AlertTriangle, CheckCircle, TrendingUp, Clock, Search, Filter, MoreHorizontal, Eye, RotateCcw, AlertCircle } from 'lucide-react';
 import { Button } from '../../../components/common/Button';
 import { Card } from '../../../components/common/Card';
@@ -6,51 +6,14 @@ import { Badge } from '../../../components/common/Badge';
 import { useModalContext } from '../../../contexts/ModalContext';
 import { DebouncedSearchInput } from '../../../components/common/DebouncedSearchInput';
 import { useSearchState } from '../../../hooks/useSearchState';
+import { useReconciliationRecords } from '../../../hooks/queries';
 
 export const ReconciliationTab: React.FC = () => {
   const { openModal } = useModalContext();
   const { debouncedQuery, handleSearch, isSearching } = useSearchState({ delay: 500 });
-  const [reconciliations] = useState([
-    {
-      id: 'recon_001',
-      provider: 'Stripe',
-      date: '2024-10-13',
-      time: '14:32',
-      status: 'COMPLETED',
-      matched: 245,
-      unmatched: 3,
-      discrepancies: 1,
-      totalAmount: '$12,450.00',
-      accuracy: 98.4,
-      duration: '2m 15s'
-    },
-    {
-      id: 'recon_002',
-      provider: 'PayPal',
-      date: '2024-10-13',
-      time: '13:45',
-      status: 'IN_PROGRESS',
-      matched: 156,
-      unmatched: 0,
-      discrepancies: 0,
-      totalAmount: '$8,920.00',
-      accuracy: 100,
-      duration: '1m 42s'
-    },
-    {
-      id: 'recon_003',
-      provider: 'Flutterwave',
-      date: '2024-10-12',
-      time: '16:20',
-      status: 'FAILED',
-      matched: 0,
-      unmatched: 89,
-      discrepancies: 5,
-      totalAmount: '$5,670.00',
-      accuracy: 0,
-      duration: '—'
-    }
-  ]);
+  const { data: reconciliationData, isLoading, error } = useReconciliationRecords();
+  
+  const reconciliations = reconciliationData?.records || [];
 
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -95,15 +58,16 @@ export const ReconciliationTab: React.FC = () => {
 
   const filteredReconciliations = useMemo(() => {
     return reconciliations.filter(recon =>
-      recon.provider.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
+      recon.providerId.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
       recon.id.toLowerCase().includes(debouncedQuery.toLowerCase())
     );
   }, [reconciliations, debouncedQuery]);
 
-  const totalMatched = filteredReconciliations.reduce((sum, r) => sum + r.matched, 0);
-  const totalUnmatched = filteredReconciliations.reduce((sum, r) => sum + r.unmatched, 0);
-  const totalDiscrepancies = filteredReconciliations.reduce((sum, r) => sum + r.discrepancies, 0);
-  const overallAccuracy = totalMatched + totalUnmatched > 0 ? ((totalMatched / (totalMatched + totalUnmatched)) * 100) : 0;
+  const summary = reconciliationData?.summary;
+  const totalMatched = summary?.matchedRecords || 0;
+  const totalUnmatched = summary?.unmatchedRecords || 0;
+  const totalDiscrepancies = summary?.disputedRecords || 0;
+  const overallAccuracy = summary?.totalRecords ? ((summary.matchedRecords / summary.totalRecords) * 100) : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
@@ -265,25 +229,43 @@ export const ReconciliationTab: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredReconciliations.map((recon, index) => {
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={9} className="px-8 py-12 text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                      <p className="mt-2 text-gray-600">Loading reconciliation data...</p>
+                    </td>
+                  </tr>
+                ) : error ? (
+                  <tr>
+                    <td colSpan={9} className="px-8 py-12 text-center">
+                      <p className="text-red-600">Error loading reconciliation data</p>
+                      <Button variant="outline" size="sm" className="mt-2" onClick={() => window.location.reload()}>
+                        Retry
+                      </Button>
+                    </td>
+                  </tr>
+                ) : filteredReconciliations.map((recon, index) => {
                   const statusConfig = getStatusConfig(recon.status);
+                  const isMatched = recon.status === 'MATCHED';
+                  const hasDiscrepancy = recon.discrepancy;
                   return (
                     <tr key={recon.id} className="group hover:bg-slate-50/50 transition-colors duration-150">
                       <td className="px-8 py-6">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">
-                            {recon.provider.charAt(0)}
+                            {recon.providerId.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-semibold text-slate-900">{recon.provider}</p>
+                            <p className="font-semibold text-slate-900">{recon.providerId}</p>
                             <p className="text-xs text-slate-500 font-medium">Payment Gateway</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-6">
                         <div className="space-y-1">
-                          <p className="font-semibold text-slate-900">{recon.date}</p>
-                          <p className="text-sm text-slate-500 font-medium">{recon.time}</p>
+                          <p className="font-semibold text-slate-900">{new Date(recon.reconciliationDate).toLocaleDateString()}</p>
+                          <p className="text-sm text-slate-500 font-medium">{new Date(recon.reconciliationDate).toLocaleTimeString()}</p>
                         </div>
                       </td>
                       <td className="px-6 py-6">
@@ -297,40 +279,38 @@ export const ReconciliationTab: React.FC = () => {
                       <td className="px-6 py-6">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                          <span className="font-bold text-emerald-700">{recon.matched.toLocaleString()}</span>
+                          <span className="font-bold text-emerald-700">{isMatched ? '1' : '0'}</span>
                         </div>
                       </td>
                       <td className="px-6 py-6">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                          <span className="font-bold text-amber-700">{recon.unmatched}</span>
+                          <span className="font-bold text-amber-700">{!isMatched ? '1' : '0'}</span>
                         </div>
                       </td>
                       <td className="px-6 py-6">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                          <span className="font-bold text-red-700">{recon.discrepancies}</span>
+                          <span className="font-bold text-red-700">{hasDiscrepancy ? '1' : '0'}</span>
                         </div>
                       </td>
                       <td className="px-6 py-6">
-                        <span className="font-bold text-slate-900 text-lg">{recon.totalAmount}</span>
+                        <span className="font-bold text-slate-900 text-lg">{recon.internalAmount} {recon.currency}</span>
                       </td>
                       <td className="px-6 py-6">
                         <div className="flex items-center gap-2">
                           <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden">
                             <div 
                               className={`h-full transition-all duration-500 ${
-                                recon.accuracy >= 95 ? 'bg-emerald-500' : 
-                                recon.accuracy >= 80 ? 'bg-amber-500' : 'bg-red-500'
+                                isMatched ? 'bg-emerald-500' : 'bg-red-500'
                               }`}
-                              style={{ width: `${recon.accuracy}%` }}
+                              style={{ width: `${isMatched ? 100 : 0}%` }}
                             />
                           </div>
                           <span className={`text-sm font-bold ${
-                            recon.accuracy >= 95 ? 'text-emerald-700' : 
-                            recon.accuracy >= 80 ? 'text-amber-700' : 'text-red-700'
+                            isMatched ? 'text-emerald-700' : 'text-red-700'
                           }`}>
-                            {recon.accuracy}%
+                            {isMatched ? '100%' : '0%'}
                           </span>
                         </div>
                       </td>
@@ -341,11 +321,11 @@ export const ReconciliationTab: React.FC = () => {
                             size="sm" 
                             icon={Eye}
                             className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-indigo-50 hover:text-indigo-700"
-                            onClick={() => openModal('info', { title: 'Reconciliation Details', message: `Details for ${recon.provider} reconciliation on ${recon.date}` })}
+                            onClick={() => openModal('info', { title: 'Reconciliation Details', message: `Details for ${recon.providerId} reconciliation on ${new Date(recon.reconciliationDate).toLocaleDateString()}` })}
                           >
                             View
                           </Button>
-                          {recon.status === 'FAILED' && (
+                          {recon.status === 'UNMATCHED' && (
                             <Button 
                               variant="ghost" 
                               size="sm" 
@@ -356,13 +336,13 @@ export const ReconciliationTab: React.FC = () => {
                               Retry
                             </Button>
                           )}
-                          {recon.discrepancies > 0 && (
+                          {recon.discrepancy && (
                             <Button 
                               variant="ghost" 
                               size="sm" 
                               icon={AlertTriangle}
                               className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-50 hover:text-red-700"
-                              onClick={() => openModal('investigateDiscrepancy', { discrepancy: recon })}
+                              onClick={() => openModal('investigateDiscrepancy', { record: recon })}
                             >
                               Investigate
                             </Button>
@@ -372,7 +352,9 @@ export const ReconciliationTab: React.FC = () => {
                             size="sm" 
                             icon={MoreHorizontal}
                             className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                          />
+                          >
+                            <span className="sr-only">More options</span>
+                          </Button>
                         </div>
                       </td>
                     </tr>

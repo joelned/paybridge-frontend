@@ -1,49 +1,18 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Plus, RefreshCw, MoreHorizontal, CheckCircle, AlertTriangle, Search, Activity } from 'lucide-react';
 import { useModalContext } from '../../../contexts/ModalContext';
 import { Card } from '../../../components/common/Card';
 import { Button } from '../../../components/common/Button';
 import { DebouncedSearchInput } from '../../../components/common/DebouncedSearchInput';
 import { useSearchState } from '../../../hooks/useSearchState';
+import { useProviders } from '../../../hooks/queries';
 
 export const ProvidersTab: React.FC = () => {
   const { openModal } = useModalContext();
   const { debouncedQuery, handleSearch, isSearching } = useSearchState({ delay: 300 });
-  const [providers] = useState([
-    { 
-      id: 'stripe', 
-      name: 'Stripe', 
-      status: 'ACTIVE',
-      transactions: 1234,
-      volume: 45234,
-      successRate: 99.2,
-      responseTime: 245,
-      health: 'excellent',
-      color: '#6366f1'
-    },
-    { 
-      id: 'paypal', 
-      name: 'PayPal', 
-      status: 'ACTIVE',
-      transactions: 856,
-      volume: 38129,
-      successRate: 97.8,
-      responseTime: 312,
-      health: 'good',
-      color: '#10b981'
-    },
-    { 
-      id: 'flutterwave', 
-      name: 'Flutterwave', 
-      status: 'INACTIVE',
-      transactions: 0,
-      volume: 0,
-      successRate: 0,
-      responseTime: 0,
-      health: 'disconnected',
-      color: '#f59e0b'
-    }
-  ]);
+  const { data: providersData, isLoading, error } = useProviders();
+  
+  const providers = providersData || [];
 
   const filteredProviders = useMemo(() => {
     return providers.filter(provider => 
@@ -131,8 +100,21 @@ export const ProvidersTab: React.FC = () => {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {filteredProviders.map((provider) => (
+        {isLoading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-2 text-gray-600">Loading providers...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-8">
+            <p className="text-red-600">Error loading providers</p>
+            <Button variant="outline" size="sm" className="mt-2" onClick={() => window.location.reload()}>
+              Retry
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {filteredProviders.map((provider) => (
             <Card key={provider.id} className="p-5 hover:shadow-md transition-all duration-200 group">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-4">
@@ -160,7 +142,7 @@ export const ProvidersTab: React.FC = () => {
                         }`} />
                         {provider.status === 'ACTIVE' ? 'Connected' : 'Inactive'}
                       </span>
-                      {provider.status === 'ACTIVE' && (
+                      {provider.status === 'ACTIVE' && provider.responseTime && (
                         <span className="text-xs text-slate-500">{provider.responseTime}ms avg</span>
                       )}
                     </div>
@@ -175,22 +157,22 @@ export const ProvidersTab: React.FC = () => {
               <div className="grid grid-cols-3 gap-4 mb-5">
                 <div className="text-center">
                   <p className="text-lg font-bold text-slate-900">
-                    ${provider.volume > 0 ? (provider.volume / 1000).toFixed(0) + 'K' : '0'}
+                    ${provider.volume && provider.volume > 0 ? (provider.volume / 1000).toFixed(0) + 'K' : '0'}
                   </p>
                   <p className="text-xs text-slate-600 font-medium">Volume</p>
                 </div>
                 <div className="text-center">
                   <p className="text-lg font-bold text-slate-900">
-                    {provider.transactions.toLocaleString()}
+                    {provider.transactions ? provider.transactions.toLocaleString() : '0'}
                   </p>
                   <p className="text-xs text-slate-600 font-medium">Transactions</p>
                 </div>
                 <div className="text-center">
                   <p className={`text-lg font-bold ${
-                    provider.successRate > 95 ? 'text-emerald-600' : 
-                    provider.successRate > 90 ? 'text-amber-600' : 'text-red-600'
+                    provider.successRate && provider.successRate > 95 ? 'text-emerald-600' : 
+                    provider.successRate && provider.successRate > 90 ? 'text-amber-600' : 'text-red-600'
                   }`}>
-                    {provider.successRate > 0 ? provider.successRate.toFixed(1) + '%' : 'N/A'}
+                    {provider.successRate && provider.successRate > 0 ? provider.successRate.toFixed(1) + '%' : 'N/A'}
                   </p>
                   <p className="text-xs text-slate-600 font-medium">Success</p>
                 </div>
@@ -216,8 +198,9 @@ export const ProvidersTab: React.FC = () => {
                 </Button>
               </div>
             </Card>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Clean activity feed */}

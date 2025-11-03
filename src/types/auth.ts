@@ -4,10 +4,19 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  token?: string; // Optional since backend sends null
+  token?: string | null; // HTTP-only cookie auth - may be null
   email: string;
-  userType: string;
+  userType?: string;
+  user_type?: string; // Alternative field name
+  type?: string; // Another alternative field name
   expiresIn: string;
+  // Optional fields that may be present
+  id?: string;
+  username?: string;
+  name?: string;
+  businessName?: string;
+  business_name?: string; // Alternative field name
+  roles?: string[];
 }
 
 export interface User {

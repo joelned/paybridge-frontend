@@ -1,6 +1,6 @@
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { paymentService } from '../../services';
-import type { PaymentFilters } from '../../services/paymentService';
+import type { PaymentFilters } from '../../services';
 
 export const usePayments = (filters: PaymentFilters = {}) => {
   return useQuery({

@@ -79,7 +79,6 @@ export const ExportDataModal: React.FC<ExportDataModalProps> = ({
           value={config.format}
           onChange={(e) => setConfig(prev => ({ ...prev, format: e.target.value as 'csv' | 'pdf' }))}
           options={formatOptions}
-          icon={config.format === 'csv' ? Table : FileText}
         />
 
         <Select
@@ -87,7 +86,6 @@ export const ExportDataModal: React.FC<ExportDataModalProps> = ({
           value={config.dateRange}
           onChange={(e) => setConfig(prev => ({ ...prev, dateRange: e.target.value }))}
           options={dateRangeOptions}
-          icon={Calendar}
         />
 
         <Select

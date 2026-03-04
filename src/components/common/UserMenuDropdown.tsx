@@ -30,10 +30,10 @@ export const UserMenuDropdown: React.FC<UserMenuDropdownProps> = ({ user, onLogo
   }, [isOpen]);
 
   const menuItems = [
-    { icon: User, label: 'Profile', action: () => console.log('Profile clicked') },
-    { icon: Settings, label: 'Settings', action: () => console.log('Settings clicked') },
-    { icon: CreditCard, label: 'Billing', action: () => console.log('Billing clicked') },
-    { icon: HelpCircle, label: 'Help & Support', action: () => console.log('Help clicked') },
+    { icon: User, label: 'Profile', action: () => { /* TODO: Implement Profile */ } },
+    { icon: Settings, label: 'Settings', action: () => { /* TODO: Implement Settings */ } },
+    { icon: CreditCard, label: 'Billing', action: () => { /* TODO: Implement Billing */ } },
+    { icon: HelpCircle, label: 'Help & Support', action: () => { /* TODO: Implement Help */ } },
   ];
 
   const handleMenuItemClick = (action: () => void) => {
@@ -48,7 +48,7 @@ export const UserMenuDropdown: React.FC<UserMenuDropdownProps> = ({ user, onLogo
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <button 
+      <button
         onClick={() => setIsOpen(!isOpen)}
         className="p-2.5 hover:bg-slate-50/80 rounded-xl focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 border border-transparent hover:border-slate-200/50"
         aria-label="Account menu"

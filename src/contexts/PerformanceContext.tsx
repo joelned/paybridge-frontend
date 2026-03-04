@@ -19,11 +19,11 @@ interface PerformanceProviderProps {
   logSlowOperations?: boolean;
 }
 
-export const PerformanceProvider = React.memo(({ 
-  children, 
-  enableProfiling = process.env.NODE_ENV === 'development',
-  trackRenders = process.env.NODE_ENV === 'development',
-  logSlowOperations = process.env.NODE_ENV === 'development'
+export const PerformanceProvider = React.memo(({
+  children,
+  enableProfiling = import.meta.env.DEV,
+  trackRenders = import.meta.env.DEV,
+  logSlowOperations = import.meta.env.DEV
 }: PerformanceProviderProps) => {
   const value = useMemo(() => ({
     enableProfiling,

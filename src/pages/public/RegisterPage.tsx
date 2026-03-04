@@ -5,6 +5,7 @@ import { AlertCircle, Building, Mail, Lock, Globe, MapPin } from 'lucide-react';
 import { Button, Input, Select, Card } from '../../components/common';
 import { InlineAlert } from '../../components/feedback/InlineAlert';
 import { authService } from '../../services/authService';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 interface RegisterPageProps {
   onNavigate: (page: string) => void;
@@ -59,30 +60,8 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
       navigate('/verify-email', { 
         state: { email: formData.email }
       });
-    } catch (err: any) {
-      let errorMessage = 'Registration failed. Please try again.';
-      if (err.response) {
-        const backendError = err.response.data;
-        if (err.response.status === 400 && backendError.errors) {
-          const fieldErrors: Record<string, string> = {};
-          backendError.errors.forEach((error: any) => {
-            fieldErrors[error.field] = error.message;
-          });
-          setErrors(fieldErrors);
-          return;
-        }
-        if (err.response.status === 409) {
-          errorMessage = 'An account with this email already exists';
-        } else if (err.response.status >= 500) {
-          errorMessage = 'Server error. Please try again later.';
-        } else {
-          errorMessage = backendError?.message || errorMessage;
-        }
-      } else if (err.request) {
-        errorMessage = 'Cannot connect to server. Please check your connection.';
-      }
-
-      setErrors({ general: errorMessage });
+    } catch (err: unknown) {
+      setErrors({ general: getErrorMessage(err) || 'Registration failed. Please try again.' });
     } finally {
       setLoading(false);
     }

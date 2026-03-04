@@ -1,140 +1,453 @@
-import React, { useState, useMemo } from 'react';
-import { Plus, Search, Download, Eye, RefreshCw } from 'lucide-react';
-import { Button } from '../../../components/common/Button';
-import { SectionHeader } from '../../../components/section/SectionHeader';
-import { Toolbar } from '../../../components/layout/Toolbar';
+import React, { useMemo, useState } from 'react';
 import { Card } from '../../../components/common/Card';
-import { Badge } from '../../../components/common/Badge';
-import { useModalContext } from '../../../contexts/ModalContext';
-import { DebouncedSearchInput } from '../../../components/common/DebouncedSearchInput';
-import { useSearchState } from '../../../hooks/useSearchState';
-import { usePayments } from '../../../hooks/queries';
-import type { Payment } from '../../../types';
+import { AlertTriangle, Copy, KeyRound, RefreshCw, Save, Server, ShieldCheck, Trash2, Webhook, Workflow } from 'lucide-react';
+import { Button } from '../../../components/common/Button';
+import { useToast } from '../../../contexts/ToastContext';
+import { merchantService } from '../../../services/merchantService';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { InlineAlert } from '../../../components/feedback/InlineAlert';
+import { getErrorMessage } from '../../../utils/errorHandler';
+import { env } from '../../../config/env';
+
+const SAMPLE_REQUEST = `POST /api/v1/payments
+Host: api.paybridge.example
+Content-Type: application/json
+x-api-key: YOUR_MERCHANT_API_KEY
+Idempotency-Key: 3c4d91f0-57f8-40fc-aef8-e6fc20626f9f
+
+{
+  "amount": 5000,
+  "currency": "NGN",
+  "description": "Order #1042",
+  "email": "customer@example.com",
+  "provider": "paystack",
+  "redirectUrl": "https://merchant.example.com/payments/return",
+  "transactionReference": "order-1042"
+}`;
+
+const NODE_SAMPLE = `await fetch('https://your-paybridge-domain/api/v1/payments', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': process.env.PAYBRIDGE_API_KEY,
+    'Idempotency-Key': crypto.randomUUID(),
+  },
+  body: JSON.stringify({
+    amount: 5000,
+    currency: 'NGN',
+    description: 'Order #1042',
+    email: customer.email,
+    provider: 'paystack',
+    redirectUrl: 'https://yourstore.com/payments/return',
+    transactionReference: order.reference,
+  }),
+});`;
+
+const DEVELOPER_HANDOFF = `Please integrate our server with PayBridge.
+
+1) Use the Test API key first (from PayBridge dashboard).
+2) Create payments from our backend endpoint:
+   POST /api/v1/payments
+   Headers: x-api-key, Idempotency-Key
+3) Optionally set provider per request (stripe/paystack).
+4) Configure webhooks:
+   - /api/v1/webhooks/stripe
+   - /api/v1/webhooks/paystack
+5) Move to Live API key after successful testing.`;
 
 export const PaymentsTab: React.FC = () => {
-  const { openModal } = useModalContext();
-  const { debouncedQuery, handleSearch, isSearching } = useSearchState({ delay: 300 });
-  const [filterStatus, setFilterStatus] = useState('all');
-  
-  const { data: paymentsData, isLoading, error } = usePayments({
-    search: debouncedQuery,
-    status: filterStatus === 'all' ? undefined : filterStatus
+  const { showToast } = useToast();
+  const queryClient = useQueryClient();
+  const [revealedKey, setRevealedKey] = useState<{ mode: 'TEST' | 'LIVE'; label: string; key: string } | null>(null);
+  const [webhookSecretInput, setWebhookSecretInput] = useState<{ stripe: string; paystack: string }>({
+    stripe: '',
+    paystack: '',
   });
-  
-  const payments = paymentsData?.payments || [];
+  const webhookBaseUrl = env.apiUrl.replace(/\/api\/v1\/?$/, '');
 
-  const statusColors = {
-    SUCCEEDED: 'success',
-    PROCESSING: 'warning',
-    FAILED: 'danger',
-    PENDING: 'info',
-    REFUNDED: 'default'
+  const {
+    data: apiKeys = [],
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['merchant-api-keys'],
+    queryFn: () => merchantService.getApiKeys(),
+    staleTime: 30 * 1000,
+  });
+
+  const {
+    data: webhookSecrets,
+    isLoading: webhookSecretsLoading,
+    error: webhookSecretsError,
+  } = useQuery({
+    queryKey: ['merchant-webhook-secrets'],
+    queryFn: async () => {
+      const [stripe, paystack] = await Promise.all([
+        merchantService.getWebhookSecret('stripe'),
+        merchantService.getWebhookSecret('paystack'),
+      ]);
+      return { stripe, paystack };
+    },
+    staleTime: 30 * 1000,
+  });
+
+  const keyByMode = useMemo(
+    () => ({
+      TEST: apiKeys.find((item) => item.mode === 'TEST'),
+      LIVE: apiKeys.find((item) => item.mode === 'LIVE'),
+    }),
+    [apiKeys]
+  );
+
+  const generateMutation = useMutation({
+    mutationFn: (mode: 'TEST' | 'LIVE') => merchantService.generateApiKey(mode),
+    onSuccess: (data) => {
+      setRevealedKey({ mode: data.mode, label: data.label, key: data.key });
+      queryClient.invalidateQueries({ queryKey: ['merchant-api-keys'] });
+      showToast(`${data.label} generated. Copy it now.`, 'success');
+    },
+    onError: (mutationError) => {
+      showToast(getErrorMessage(mutationError), 'error');
+    },
+  });
+
+  const revokeMutation = useMutation({
+    mutationFn: (keyId: 'test' | 'live') => merchantService.revokeApiKey(keyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['merchant-api-keys'] });
+      showToast('API key revoked successfully', 'success');
+      setRevealedKey(null);
+    },
+    onError: (mutationError) => {
+      showToast(getErrorMessage(mutationError), 'error');
+    },
+  });
+
+  const webhookSecretMutation = useMutation({
+    mutationFn: ({ provider, secret, rotate }: { provider: 'stripe' | 'paystack'; secret: string; rotate: boolean }) => {
+      if (rotate) {
+        return merchantService.rotateWebhookSecret(provider, secret);
+      }
+      return merchantService.setWebhookSecret(provider, secret);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['merchant-webhook-secrets'] });
+      setWebhookSecretInput((previous) => ({ ...previous, [variables.provider]: '' }));
+      showToast(`Webhook secret ${variables.rotate ? 'rotated' : 'saved'} for ${variables.provider}`, 'success');
+    },
+    onError: (mutationError) => {
+      showToast(getErrorMessage(mutationError), 'error');
+    },
+  });
+
+  const copyText = async (value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      showToast('Copied to clipboard', 'success');
+    } catch {
+      showToast('Could not copy text', 'error');
+    }
   };
-
-  const filteredPayments = payments;
 
   return (
     <div className="space-y-6">
-      <SectionHeader
-        title="All Payments"
-        subtitle="Unified view across all providers"
-      />
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Payment API Integration</h1>
+        <p className="text-sm text-slate-600 mt-1">
+          Customer payments should be created from your ecommerce backend, not from this dashboard.
+        </p>
+      </div>
 
-      <Card padding="lg">
-        <Toolbar>
-          <DebouncedSearchInput
-            placeholder="Search by customer or ID..."
-            onSearch={handleSearch}
-            delay={300}
-            className="flex-1 max-w-md"
-            isLoading={isSearching}
-          />
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 bg-white"
-          >
-            <option value="all">All Statuses</option>
-            <option value="SUCCEEDED">Succeeded</option>
-            <option value="PROCESSING">Processing</option>
-            <option value="FAILED">Failed</option>
-            <option value="REFUNDED">Refunded</option>
-          </select>
-          <Button variant="outline" icon={Download} onClick={() => openModal('exportData', { type: 'payments' })}>Export CSV</Button>
-        </Toolbar>
+      {error && (
+        <InlineAlert variant="error" icon={AlertTriangle} className="bg-red-50 border-red-300 text-red-800">
+          {getErrorMessage(error)}
+        </InlineAlert>
+      )}
+
+      {webhookSecretsError && (
+        <InlineAlert variant="error" icon={AlertTriangle} className="bg-red-50 border-red-300 text-red-800">
+          {getErrorMessage(webhookSecretsError)}
+        </InlineAlert>
+      )}
+
+      {revealedKey && (
+        <InlineAlert variant="warning" icon={AlertTriangle}>
+          <div className="space-y-3">
+            <p className="font-semibold">Save this key now. For security, Paybridge shows it only once.</p>
+            <div className="rounded-lg bg-slate-900 text-slate-100 p-3 text-xs break-all">{revealedKey.key}</div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" icon={Copy} onClick={() => copyText(revealedKey.key)}>
+                Copy Key
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setRevealedKey(null)}>
+                Hide Key
+              </Button>
+            </div>
+          </div>
+        </InlineAlert>
+      )}
+
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-slate-900">Share With Your Developer</h2>
+          <Button variant="outline" size="sm" icon={Copy} onClick={() => copyText(DEVELOPER_HANDOFF)}>
+            Copy
+          </Button>
+        </div>
+        <p className="text-sm text-slate-600 mb-3">
+          If you are not technical, copy this message and send it to your developer.
+        </p>
+        <pre className="text-xs bg-slate-900 text-slate-100 rounded-lg p-4 overflow-x-auto">{DEVELOPER_HANDOFF}</pre>
       </Card>
 
-      <Card>
-        {isLoading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600">Loading payments...</p>
-          </div>
-        ) : error ? (
-          <div className="p-8 text-center">
-            <p className="text-red-600">Error loading payments</p>
-            <Button variant="outline" size="sm" className="mt-2" onClick={() => window.location.reload()}>
-              Retry
-            </Button>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-25 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Payment ID</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Customer</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Amount</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Provider</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filteredPayments.map((payment) => (
-                  <tr key={payment.id} className="hover:bg-gray-25 transition-colors">
-                    <td className="px-6 py-4 text-sm font-mono text-gray-900">{payment.id}</td>
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{payment.customer}</td>
-                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">{payment.amount}</td>
-                    <td className="px-6 py-4">
-                      <Badge variant={statusColors[payment.status] as any}>
-                        {payment.status}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-700">{payment.provider}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{payment.date}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          icon={Eye}
-                          onClick={() => openModal('transactionDetails', { transaction: payment })}
-                        >
-                          View
-                        </Button>
-                        {payment.status === 'FAILED' && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            icon={RefreshCw}
-                            onClick={() => openModal('retryPayment', { payment })}
-                          >
-                            Retry
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <Card className="p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <KeyRound size={18} className="text-blue-600" />
+          <h2 className="text-lg font-semibold text-slate-900">API Keys</h2>
+        </div>
+        <p className="text-sm text-slate-600 mb-5">
+          Use these keys only on your server. Never expose them in browser or mobile app code.
+        </p>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {(['TEST', 'LIVE'] as const).map((mode) => {
+            const record = keyByMode[mode];
+            const label = mode === 'TEST' ? 'Test API Key' : 'Live API Key';
+            const keyId = mode === 'TEST' ? 'test' : 'live';
+            const hasKey = !!record?.active;
+
+            return (
+              <div key={mode} className="border border-slate-200 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-slate-900">{label}</h3>
+                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${hasKey ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+                    {hasKey ? 'Active' : 'Not Generated'}
+                  </span>
+                </div>
+                <div className="rounded-lg bg-slate-900 text-slate-100 p-3 text-xs break-all min-h-[48px] flex items-center">
+                  {hasKey ? record?.maskedKey : 'No key has been created yet'}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={RefreshCw}
+                    loading={generateMutation.isPending && generateMutation.variables === mode}
+                    onClick={() => generateMutation.mutate(mode)}
+                  >
+                    {hasKey ? 'Rotate Key' : 'Generate Key'}
+                  </Button>
+                  {hasKey && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      icon={Trash2}
+                      className="text-red-700 hover:bg-red-50"
+                      loading={revokeMutation.isPending && revokeMutation.variables === keyId}
+                      onClick={() => {
+                        const confirmed = window.confirm(`Revoke ${label}? Existing backend integrations using it will stop working immediately.`);
+                        if (confirmed) {
+                          revokeMutation.mutate(keyId);
+                        }
+                      }}
+                    >
+                      Revoke
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {isLoading && <p className="text-sm text-slate-600 mt-4">Loading API keys...</p>}
       </Card>
 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="p-5">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-indigo-50">
+              <Server size={18} className="text-indigo-600" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-slate-900">Server-to-Server</h2>
+              <p className="text-sm text-slate-600 mt-1">Call Paybridge from your backend after order validation.</p>
+            </div>
+          </div>
+        </Card>
 
+        <Card className="p-5">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-emerald-50">
+              <ShieldCheck size={18} className="text-emerald-600" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-slate-900">Keep Keys Private</h2>
+              <p className="text-sm text-slate-600 mt-1">Never create payments directly from browser/client-side code.</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-amber-50">
+              <Workflow size={18} className="text-amber-600" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-slate-900">Use Idempotency</h2>
+              <p className="text-sm text-slate-600 mt-1">Send a unique <code>Idempotency-Key</code> per payment attempt.</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Webhook size={18} className="text-violet-600" />
+            <h2 className="text-lg font-semibold text-slate-900">Webhook URLs</h2>
+          </div>
+        </div>
+        <p className="text-sm text-slate-600 mb-4">
+          Add these URLs in your Stripe and Paystack dashboards so PayBridge can receive payment status updates.
+        </p>
+        <div className="space-y-3">
+          <div className="rounded-lg border border-slate-200 p-3 bg-slate-50">
+            <p className="text-xs text-slate-500 mb-1">Stripe webhook endpoint</p>
+            <div className="flex items-center gap-2">
+              <code className="text-xs text-slate-900 break-all">{webhookBaseUrl}/api/v1/webhooks/stripe</code>
+              <Button
+                variant="outline"
+                size="sm"
+                icon={Copy}
+                onClick={() => copyText(`${webhookBaseUrl}/api/v1/webhooks/stripe`)}
+              >
+                Copy
+              </Button>
+            </div>
+          </div>
+          <div className="rounded-lg border border-slate-200 p-3 bg-slate-50">
+            <p className="text-xs text-slate-500 mb-1">Paystack webhook endpoint</p>
+            <div className="flex items-center gap-2">
+              <code className="text-xs text-slate-900 break-all">{webhookBaseUrl}/api/v1/webhooks/paystack</code>
+              <Button
+                variant="outline"
+                size="sm"
+                icon={Copy}
+                onClick={() => copyText(`${webhookBaseUrl}/api/v1/webhooks/paystack`)}
+              >
+                Copy
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-6">
+        <div className="flex items-center gap-2 mb-2">
+          <ShieldCheck size={18} className="text-emerald-600" />
+          <h2 className="text-lg font-semibold text-slate-900">Webhook Secrets</h2>
+        </div>
+        <p className="text-sm text-slate-600 mb-4">
+          Save each provider webhook secret so PayBridge can verify webhook signatures for your account.
+        </p>
+        <div className="space-y-4">
+          {(['stripe', 'paystack'] as const).map((provider) => {
+            const item = webhookSecrets?.[provider];
+            const isLoadingAction =
+              webhookSecretMutation.isPending && webhookSecretMutation.variables?.provider === provider;
+
+            return (
+              <div key={provider} className="rounded-xl border border-slate-200 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="font-semibold text-slate-900 capitalize">{provider}</h3>
+                  <span
+                    className={`text-xs font-medium px-2 py-1 rounded-full ${
+                      item?.configured
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-red-100 text-red-700'
+                    }`}
+                  >
+                    {item?.configured ? 'Configured' : 'Not Configured'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 mt-2">
+                  {provider === 'stripe'
+                    ? 'Paste Stripe endpoint signing secret (starts with whsec_).'
+                    : 'Set Paystack webhook secret. If omitted, PayBridge falls back to your Paystack secret key.'}
+                </p>
+                <div className="rounded-lg bg-slate-900 text-slate-100 p-3 text-xs break-all min-h-[40px] flex items-center mt-3">
+                  {item?.configured ? item?.maskedSecret || 'Configured' : 'No webhook secret saved'}
+                </div>
+                <input
+                  type="password"
+                  value={webhookSecretInput[provider]}
+                  onChange={(event) =>
+                    setWebhookSecretInput((previous) => ({ ...previous, [provider]: event.target.value }))
+                  }
+                  placeholder={`Enter ${provider} webhook secret`}
+                  className="mt-3 w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+                />
+                <div className="flex flex-wrap gap-2 mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={Save}
+                    loading={isLoadingAction && !webhookSecretMutation.variables?.rotate}
+                    disabled={!webhookSecretInput[provider].trim() || webhookSecretsLoading}
+                    onClick={() =>
+                      webhookSecretMutation.mutate({
+                        provider,
+                        secret: webhookSecretInput[provider].trim(),
+                        rotate: false,
+                      })
+                    }
+                  >
+                    Save Secret
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    icon={RefreshCw}
+                    className="text-amber-700 hover:bg-amber-50"
+                    loading={isLoadingAction && !!webhookSecretMutation.variables?.rotate}
+                    disabled={!webhookSecretInput[provider].trim() || webhookSecretsLoading}
+                    onClick={() =>
+                      webhookSecretMutation.mutate({
+                        provider,
+                        secret: webhookSecretInput[provider].trim(),
+                        rotate: true,
+                      })
+                    }
+                  >
+                    Rotate Secret
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-slate-900">HTTP Request Template</h2>
+          <Button variant="outline" size="sm" icon={Copy} onClick={() => copyText(SAMPLE_REQUEST)}>
+            Copy
+          </Button>
+        </div>
+        <pre className="text-xs bg-slate-900 text-slate-100 rounded-lg p-4 overflow-x-auto">{SAMPLE_REQUEST}</pre>
+      </Card>
+
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-slate-900">Node.js Example</h2>
+          <Button variant="outline" size="sm" icon={Copy} onClick={() => copyText(NODE_SAMPLE)}>
+            Copy
+          </Button>
+        </div>
+        <pre className="text-xs bg-slate-900 text-slate-100 rounded-lg p-4 overflow-x-auto">{NODE_SAMPLE}</pre>
+      </Card>
     </div>
   );
 };

@@ -1,145 +1,131 @@
-import React, { useState } from 'react';
-import { BarChart3, TrendingUp, TrendingDown, Calendar, Download, DollarSign, CreditCard, Target, Zap, Filter, RefreshCw, ArrowUpRight, ArrowDownRight, Activity, PieChart, LineChart, Users, Clock, Globe } from 'lucide-react';
-import { Button } from '../../../components/common/Button';
+import React, { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { BarChart3, CheckCircle2, Clock3, Download, TrendingUp, XCircle } from 'lucide-react';
 import { Card } from '../../../components/common/Card';
+import { Button } from '../../../components/common/Button';
+import { InlineAlert } from '../../../components/feedback/InlineAlert';
 import { useModalContext } from '../../../contexts/ModalContext';
+import { useCurrency } from '../../../contexts/CurrencyContext';
+import { merchantService } from '../../../services/merchantService';
+import { fxService } from '../../../services/fxService';
+import { getErrorMessage } from '../../../utils/errorHandler';
+
+const RANGE_OPTIONS = [
+  { value: 7, label: 'Last 7 days' },
+  { value: 30, label: 'Last 30 days' },
+  { value: 90, label: 'Last 90 days' },
+  { value: 365, label: 'Last 1 year' },
+];
+
+const formatAmount = (amount: number, currency: string) => {
+  if (!Number.isFinite(amount)) {
+    return '-';
+  }
+
+  if (!currency || currency === 'N/A') {
+    return amount.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  }
+
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `${amount.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${currency}`;
+  }
+};
 
 export const AnalyticsTab: React.FC = () => {
   const { openModal } = useModalContext();
-  const [timeRange, setTimeRange] = useState('7d');
-  const [activeChart, setActiveChart] = useState('revenue');
+  const { selectedCurrency } = useCurrency();
+  const [days, setDays] = useState<number>(30);
 
-  const metrics = [
-    {
-      title: 'Total Revenue',
-      value: '$124,563',
-      change: '+12.5%',
-      trend: 'up' as const,
-      period: 'vs last period',
-      icon: DollarSign,
-      color: 'emerald',
-      previousValue: '$110,945',
-      target: '$130,000'
-    },
-    {
-      title: 'Transaction Volume',
-      value: '1,284',
-      change: '+8.2%',
-      trend: 'up' as const,
-      period: 'transactions',
-      icon: CreditCard,
-      color: 'blue',
-      previousValue: '1,186',
-      target: '1,400'
-    },
-    {
-      title: 'Average Order Value',
-      value: '$97.12',
-      change: '+4.1%',
-      trend: 'up' as const,
-      period: 'per transaction',
-      icon: Target,
-      color: 'indigo',
-      previousValue: '$93.28',
-      target: '$100.00'
-    },
-    {
-      title: 'Success Rate',
-      value: '98.4%',
-      change: '+2.1%',
-      trend: 'up' as const,
-      period: 'completion rate',
-      icon: Zap,
-      color: 'amber',
-      previousValue: '96.3%',
-      target: '99.0%'
+  const {
+    data,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['merchant-analytics', days],
+    queryFn: () => merchantService.getMerchantAnalytics(days),
+    staleTime: 60 * 1000,
+  });
+
+  const baseCurrency = data?.primaryCurrency && data.primaryCurrency !== 'N/A'
+    ? data.primaryCurrency
+    : undefined;
+
+  const {
+    data: fxRate,
+    error: fxError,
+    isLoading: isFxLoading,
+  } = useQuery({
+    queryKey: ['fx-rate', baseCurrency, selectedCurrency.code],
+    queryFn: () => fxService.getConversionRate(baseCurrency as string, selectedCurrency.code),
+    enabled: Boolean(baseCurrency && selectedCurrency.code && baseCurrency !== selectedCurrency.code),
+    staleTime: 30 * 60 * 1000,
+    retry: 1,
+  });
+
+  const effectiveRate = useMemo(() => {
+    if (!baseCurrency || !selectedCurrency.code) {
+      return undefined;
     }
-  ];
-
-  const providerBreakdown = [
-    { 
-      provider: 'Stripe', 
-      percentage: 45, 
-      amount: '$55,953', 
-      transactions: 578,
-      avgValue: '$96.80',
-      color: 'from-blue-500 to-blue-600',
-      bgColor: 'bg-blue-50',
-      textColor: 'text-blue-700',
-      change: '+5.2%'
-    },
-    { 
-      provider: 'PayPal', 
-      percentage: 35, 
-      amount: '$43,597', 
-      transactions: 449,
-      avgValue: '$97.10',
-      color: 'from-emerald-500 to-emerald-600',
-      bgColor: 'bg-emerald-50',
-      textColor: 'text-emerald-700',
-      change: '+3.8%'
-    },
-    { 
-      provider: 'Flutterwave', 
-      percentage: 20, 
-      amount: '$25,013', 
-      transactions: 257,
-      avgValue: '$97.32',
-      color: 'from-amber-500 to-amber-600',
-      bgColor: 'bg-amber-50',
-      textColor: 'text-amber-700',
-      change: '+12.1%'
+    if (baseCurrency === selectedCurrency.code) {
+      return 1;
     }
-  ];
+    return fxRate?.rate;
+  }, [baseCurrency, selectedCurrency.code, fxRate?.rate]);
 
-  const timeRangeOptions = [
-    { value: '24h', label: 'Last 24 hours' },
-    { value: '7d', label: 'Last 7 days' },
-    { value: '30d', label: 'Last 30 days' },
-    { value: '90d', label: 'Last 90 days' },
-    { value: '1y', label: 'Last year' }
-  ];
+  const convertedTotalProcessed = useMemo(() => {
+    if (!data || typeof effectiveRate !== 'number') {
+      return undefined;
+    }
+    return data.totalProcessedAmount * effectiveRate;
+  }, [data, effectiveRate]);
 
-  const chartTypes = [
-    { id: 'revenue', label: 'Revenue', icon: DollarSign },
-    { id: 'volume', label: 'Volume', icon: BarChart3 },
-    { id: 'conversion', label: 'Conversion', icon: Target }
-  ];
+  const convertedAverage = useMemo(() => {
+    if (!data || typeof effectiveRate !== 'number') {
+      return undefined;
+    }
+    return data.averageTransactionAmount * effectiveRate;
+  }, [data, effectiveRate]);
 
-  const getMetricIcon = (color: string, IconComponent: React.ComponentType<any>) => {
-    const colorClasses = {
-      emerald: 'bg-emerald-100 text-emerald-600',
-      blue: 'bg-blue-100 text-blue-600',
-      indigo: 'bg-indigo-100 text-indigo-600',
-      amber: 'bg-amber-100 text-amber-600'
-    };
-    return colorClasses[color as keyof typeof colorClasses] || 'bg-slate-100 text-slate-600';
-  };
+  const trendSummary = useMemo(() => {
+    if (!data?.dailyTrend?.length) {
+      return { latest: 0, previous: 0, direction: 'flat' as 'up' | 'down' | 'flat' };
+    }
 
-  const getTrendIcon = (trend: string) => {
-    return trend === 'up' ? ArrowUpRight : ArrowDownRight;
-  };
+    const latest = data.dailyTrend[data.dailyTrend.length - 1]?.transactions || 0;
+    const previous = data.dailyTrend[data.dailyTrend.length - 2]?.transactions || 0;
 
-  const getTrendColor = (trend: string) => {
-    return trend === 'up' ? 'text-emerald-600' : 'text-red-600';
-  };
+    if (latest > previous) return { latest, previous, direction: 'up' as const };
+    if (latest < previous) return { latest, previous, direction: 'down' as const };
+    return { latest, previous, direction: 'flat' as const };
+  }, [data]);
 
   return (
     <div className="space-y-6">
-      {/* Minimal header with key actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Analytics</h1>
-          <p className="text-sm text-slate-600 mt-1">Performance insights and trends</p>
+          <p className="text-sm text-slate-600 mt-1">
+            High-level performance across all your connected payment providers.
+          </p>
         </div>
+
         <div className="flex items-center gap-2">
           <select
-            value={timeRange}
-            onChange={(e) => setTimeRange(e.target.value)}
+            value={days}
+            onChange={(event) => setDays(Number(event.target.value))}
             className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-colors"
           >
-            {timeRangeOptions.map(option => (
-              <option key={option.value} value={option.value}>{option.label}</option>
+            {RANGE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
             ))}
           </select>
           <Button variant="outline" size="sm" icon={Download} onClick={() => openModal('exportData', { type: 'analytics' })}>
@@ -147,184 +133,169 @@ export const AnalyticsTab: React.FC = () => {
           </Button>
         </div>
       </div>
-      {/* KPI Cards - Clear at-a-glance metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {metrics.map((metric, index) => {
-          const IconComponent = metric.icon;
-          const TrendIcon = getTrendIcon(metric.trend);
-          const isPositive = metric.trend === 'up';
-          return (
-            <Card key={index} className="p-5 hover:shadow-md transition-shadow duration-200">
-              <div className="flex items-start justify-between mb-4">
-                <div className={`p-2 rounded-lg ${
-                  metric.color === 'emerald' ? 'bg-emerald-50' :
-                  metric.color === 'blue' ? 'bg-blue-50' :
-                  metric.color === 'indigo' ? 'bg-indigo-50' : 'bg-amber-50'
-                }`}>
-                  <IconComponent size={18} className={`${
-                    metric.color === 'emerald' ? 'text-emerald-600' :
-                    metric.color === 'blue' ? 'text-blue-600' :
-                    metric.color === 'indigo' ? 'text-indigo-600' : 'text-amber-600'
-                  }`} />
-                </div>
-                <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                  isPositive ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
-                }`}>
-                  <TrendIcon size={12} />
-                  <span>{metric.change}</span>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <p className="text-2xl font-bold text-slate-900">{metric.value}</p>
-                <p className="text-sm font-medium text-slate-600">{metric.title}</p>
-                <p className="text-xs text-slate-500">{metric.period}</p>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
 
-      {/* Main Analytics Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Revenue Chart - Primary focus */}
-        <Card className="lg:col-span-2">
-          <div className="p-5 border-b border-slate-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900">Revenue Trend</h3>
-                <p className="text-sm text-slate-600 mt-1">Track performance over time</p>
-              </div>
-              <div className="flex bg-slate-100 rounded-lg p-1">
-                {chartTypes.map((chart) => {
-                  const IconComponent = chart.icon;
-                  return (
-                    <button
-                      key={chart.id}
-                      onClick={() => setActiveChart(chart.id)}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                        activeChart === chart.id
-                          ? 'bg-white text-slate-900 shadow-sm'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      <IconComponent size={14} />
-                      <span className="hidden sm:inline">{chart.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-          <div className="p-6">
-            <div className="h-72 bg-gradient-to-br from-slate-50 to-slate-100/50 rounded-xl border border-slate-100 flex items-center justify-center">
-              <div className="text-center space-y-3">
-                <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center mx-auto">
-                  <LineChart size={24} className="text-indigo-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-slate-700">Interactive Chart</p>
-                  <p className="text-sm text-slate-500">Real-time revenue visualization</p>
-                </div>
-              </div>
-            </div>
+      {error && (
+        <InlineAlert variant="error" className="bg-red-50 border-red-300 text-red-800">
+          {getErrorMessage(error)}
+        </InlineAlert>
+      )}
+
+      {fxError && (
+        <InlineAlert variant="error" className="bg-red-50 border-red-300 text-red-800">
+          {getErrorMessage(fxError)}
+        </InlineAlert>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <Card className="p-5">
+          <p className="text-sm text-slate-600">Total Transactions</p>
+          <p className="text-2xl font-bold text-slate-900 mt-2">{isLoading ? '...' : data?.totalTransactions ?? 0}</p>
+          <div className="flex items-center gap-2 mt-3 text-xs text-slate-600">
+            <BarChart3 size={14} />
+            <span>{days}-day window</span>
           </div>
         </Card>
 
-        {/* Provider Performance - Secondary focus */}
-        <Card>
-          <div className="p-5 border-b border-slate-100">
-            <h3 className="text-lg font-semibold text-slate-900">Top Providers</h3>
-            <p className="text-sm text-slate-600 mt-1">Revenue by provider</p>
+        <Card className="p-5">
+          <p className="text-sm text-slate-600">Success Rate</p>
+          <p className="text-2xl font-bold text-emerald-700 mt-2">{isLoading ? '...' : `${data?.successRate ?? 0}%`}</p>
+          <div className="flex items-center gap-2 mt-3 text-xs text-slate-600">
+            <CheckCircle2 size={14} className="text-emerald-600" />
+            <span>{isLoading ? '...' : `${data?.successfulTransactions ?? 0} successful`}</span>
           </div>
-          <div className="p-5 space-y-5">
-            {providerBreakdown.map((provider, index) => (
-              <div key={index} className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                      provider.bgColor
-                    }`}>
-                      <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${provider.color}`} />
+        </Card>
+
+        <Card className="p-5">
+          <p className="text-sm text-slate-600">Failed / Cancelled</p>
+          <p className="text-2xl font-bold text-red-700 mt-2">{isLoading ? '...' : data?.failedTransactions ?? 0}</p>
+          <div className="flex items-center gap-2 mt-3 text-xs text-slate-600">
+            <XCircle size={14} className="text-red-600" />
+            <span>Needs attention</span>
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <p className="text-sm text-slate-600">Pending</p>
+          <p className="text-2xl font-bold text-amber-700 mt-2">{isLoading ? '...' : data?.pendingTransactions ?? 0}</p>
+          <div className="flex items-center gap-2 mt-3 text-xs text-slate-600">
+            <Clock3 size={14} className="text-amber-600" />
+            <span>Awaiting final status</span>
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2 p-6">
+          <h2 className="text-lg font-semibold text-slate-900">Revenue Summary</h2>
+          <p className="text-sm text-slate-600 mt-1">Processed amount and averages for the selected period.</p>
+
+          <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-xl border border-slate-200 p-4 bg-slate-50">
+              <p className="text-xs uppercase tracking-wide text-slate-500">Total Processed</p>
+              <p className="text-xl font-bold text-slate-900 mt-2">
+                {isLoading
+                  ? '...'
+                  : formatAmount(
+                      convertedTotalProcessed ?? data?.totalProcessedAmount ?? 0,
+                      selectedCurrency.code || data?.primaryCurrency || 'N/A'
+                    )}
+              </p>
+            </div>
+            <div className="rounded-xl border border-slate-200 p-4 bg-slate-50">
+              <p className="text-xs uppercase tracking-wide text-slate-500">Average Transaction</p>
+              <p className="text-xl font-bold text-slate-900 mt-2">
+                {isLoading
+                  ? '...'
+                  : formatAmount(
+                      convertedAverage ?? data?.averageTransactionAmount ?? 0,
+                      selectedCurrency.code || data?.primaryCurrency || 'N/A'
+                    )}
+              </p>
+            </div>
+          </div>
+
+          {isFxLoading && baseCurrency && baseCurrency !== selectedCurrency.code && (
+            <p className="text-xs text-slate-500 mt-4">Updating conversion rate...</p>
+          )}
+          {!isFxLoading && effectiveRate && baseCurrency && (
+            <p className="text-xs text-slate-500 mt-4">
+              FX rate: 1 {baseCurrency} = {effectiveRate.toFixed(6)} {selectedCurrency.code}
+            </p>
+          )}
+          {data?.currenciesUsed && data.currenciesUsed.length > 1 && (
+            <p className="text-xs text-slate-500 mt-4">
+              Multiple source currencies detected ({data.currenciesUsed.join(', ')}). Display conversion uses primary currency {data.primaryCurrency}.
+            </p>
+          )}
+        </Card>
+
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold text-slate-900">Latest Trend</h2>
+          <p className="text-sm text-slate-600 mt-1">Compared to the previous day.</p>
+
+          <div className="mt-6 flex items-center gap-3">
+            <div className={`p-2 rounded-lg ${trendSummary.direction === 'up' ? 'bg-emerald-100' : trendSummary.direction === 'down' ? 'bg-red-100' : 'bg-slate-100'}`}>
+              <TrendingUp
+                size={20}
+                className={trendSummary.direction === 'up' ? 'text-emerald-700' : trendSummary.direction === 'down' ? 'text-red-700 rotate-180' : 'text-slate-500'}
+              />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-slate-900">{trendSummary.latest} txns</p>
+              <p className="text-xs text-slate-600">Previous day: {trendSummary.previous} txns</p>
+            </div>
+          </div>
+
+          <Button variant="outline" size="sm" className="mt-6" onClick={() => refetch()}>
+            Refresh
+          </Button>
+        </Card>
+      </div>
+
+      <Card className="p-6">
+        <h2 className="text-lg font-semibold text-slate-900 mb-4">Provider Performance</h2>
+
+        {isLoading ? (
+          <p className="text-sm text-slate-600">Loading provider analytics...</p>
+        ) : !data?.providers?.length ? (
+          <p className="text-sm text-slate-600">No provider activity in selected period.</p>
+        ) : (
+          <div className="space-y-3">
+            {data.providers.map((provider) => (
+              <div key={provider.providerCode} className="border border-slate-200 rounded-lg p-4">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-slate-900">{provider.providerName}</p>
+                    <p className="text-xs text-slate-600">Code: {provider.providerCode}</p>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <p className="text-slate-500 text-xs">Transactions</p>
+                      <p className="font-semibold text-slate-900">{provider.transactions}</p>
                     </div>
                     <div>
-                      <p className="font-medium text-slate-900">{provider.provider}</p>
-                      <p className="text-xs text-slate-500">{provider.transactions} transactions</p>
+                      <p className="text-slate-500 text-xs">Success Rate</p>
+                      <p className="font-semibold text-emerald-700">{provider.successRate}%</p>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-slate-900">{provider.amount}</p>
-                    <div className="flex items-center gap-1 justify-end">
-                      <ArrowUpRight size={12} className="text-emerald-600" />
-                      <span className="text-xs font-medium text-emerald-600">{provider.change}</span>
+                    <div>
+                      <p className="text-slate-500 text-xs">Successful</p>
+                      <p className="font-semibold text-slate-900">{provider.successfulTransactions}</p>
                     </div>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs text-slate-500">
-                    <span>{provider.percentage}% of total</span>
-                    <span>{provider.avgValue} avg</span>
-                  </div>
-                  <div className="w-full bg-slate-200 rounded-full h-1.5">
-                    <div 
-                      className={`h-1.5 rounded-full bg-gradient-to-r ${provider.color} transition-all duration-700`}
-                      style={{ width: `${provider.percentage}%` }}
-                    />
+                    <div>
+                      <p className="text-slate-500 text-xs">Processed Amount</p>
+                      <p className="font-semibold text-slate-900">
+                        {formatAmount(
+                          typeof effectiveRate === 'number' ? provider.processedAmount * effectiveRate : provider.processedAmount,
+                          selectedCurrency.code || data.primaryCurrency || 'N/A'
+                        )}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
             ))}
           </div>
-        </Card>
-      </div>
-
-      {/* Transaction Activity - Minimal but informative */}
-      <Card>
-        <div className="p-5 border-b border-slate-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900">Transaction Activity</h3>
-              <p className="text-sm text-slate-600 mt-1">Volume patterns and trends</p>
-            </div>
-            <div className="flex bg-slate-100 rounded-lg p-1">
-              {['24H', '7D', '30D'].map((period) => (
-                <button 
-                  key={period}
-                  className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-white rounded-md transition-all"
-                >
-                  {period}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className="p-6">
-          <div className="h-48 bg-gradient-to-br from-slate-50 to-slate-100/50 rounded-xl border border-slate-100 flex items-center justify-center">
-            <div className="text-center space-y-3">
-              <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mx-auto">
-                <Activity size={24} className="text-emerald-600" />
-              </div>
-              <div>
-                <p className="font-medium text-slate-700">Activity Timeline</p>
-                <p className="text-sm text-slate-500">Transaction volume over time</p>
-              </div>
-              {/* Status indicators */}
-              <div className="flex items-center justify-center gap-4 pt-2">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 bg-emerald-500 rounded-full" />
-                  <span className="text-xs text-slate-600">Success</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 bg-amber-500 rounded-full" />
-                  <span className="text-xs text-slate-600">Pending</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 bg-red-500 rounded-full" />
-                  <span className="text-xs text-slate-600">Failed</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
       </Card>
     </div>
   );

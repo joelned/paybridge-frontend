@@ -1,5 +1,5 @@
 import React from 'react';
-import { GitMerge, Link2, BarChart3, RefreshCw, Shield, Zap, ArrowRight } from 'lucide-react';
+import { GitMerge, Link2, BarChart3, Shield, Zap, ArrowRight, ServerCog } from 'lucide-react';
 import { Button } from '../../components/common/Button';
 import { Card } from '../../components/common/Card';
 import { Container } from '../../components/layout/Container';
@@ -26,10 +26,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
       title: 'Unified Analytics', 
       description: 'Cross-provider insights and reporting in one beautiful dashboard'
     },
-    { 
-      icon: RefreshCw, 
-      title: 'Auto Reconciliation', 
-      description: 'Automatically match and reconcile transactions across all providers'
+    {
+      icon: ServerCog,
+      title: 'Merchant Backend First',
+      description: 'Create payments securely from your ecommerce backend using one API'
     },
     { 
       icon: Shield, 
@@ -49,12 +49,7 @@ const providers = [
     logo: 'https://logo.clearbit.com/stripe.com', 
     color: '#635BFF' 
   },
-  { 
-    name: 'Flutterwave', 
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/9/9e/Flutterwave_Logo.png', 
-    color: '#F5A623' 
-  },
-  { 
+  {
     name: 'Paystack', 
     logo: 'https://static.cdnlogo.com/logos/p/27/paystack.svg', 
     color: '#00C3F7' 
@@ -96,8 +91,8 @@ const providers = [
           </span>
         </h1>
         <p className="text-base sm:text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-          PayBridge orchestrates payments across multiple providers, giving you smart routing, unified analytics, 
-          automatic reconciliation, and bulletproof idempotency—all through a single, elegant API.
+          PayBridge orchestrates payments across multiple providers, giving you smart routing, unified analytics,
+          and bulletproof idempotency through a single, elegant API.
         </p>
         <div className="flex gap-3 sm:gap-4 justify-center">
           <Button size="lg" onClick={() => onNavigate('register')} icon={ArrowRight}>

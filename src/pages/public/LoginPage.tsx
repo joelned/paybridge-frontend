@@ -1,5 +1,5 @@
 // src/pages/public/LoginPage.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AlertCircle, Mail, Lock, CheckCircle } from 'lucide-react';
 import paybridgeLogo from '../../assets/paybridge_logo.png';
@@ -10,16 +10,21 @@ import { useAuth } from '../../contexts/AuthContext';
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const state = location.state as { message?: string };
+  const state = location.state as { message?: string; email?: string };
   const { login, user, isAuthenticated } = useAuth();
-  
-  const [formData, setFormData] = useState({ email: '', password: '' });
+
+  // Initialize email from state or localStorage (Remember Me)
+  const [formData, setFormData] = useState({
+    email: state?.email || localStorage.getItem('remembered_email') || '',
+    password: ''
+  });
+  const [rememberMe, setRememberMe] = useState(() => !!localStorage.getItem('remembered_email'));
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState(state?.message || '');
   const [loading, setLoading] = useState(false);
 
-  // Redirect if already authenticated
-  useEffect(() => {
+  // Use useLayoutEffect to prevent flash of login content if already authenticated
+  useLayoutEffect(() => {
     if (isAuthenticated && user) {
       const target = user.userType === 'ADMIN' ? '/admin/overview' : '/merchant/overview';
       navigate(target, { replace: true });
@@ -39,38 +44,38 @@ export const LoginPage: React.FC = () => {
     setError('');
 
     try {
-      await login(formData.email, formData.password);
-      // Navigation will be handled by the useEffect above
-    } catch (err: any) {
-      if (err.response) {
-        const status = err.response.status;
-        if (status === 401 || status === 403) {
-          const message = err.response.data?.message || '';
-          
-          if (message.toLowerCase().includes('verify') || message.toLowerCase().includes('verification')) {
-            setError('Please verify your email before logging in.');
-            setTimeout(() => {
-              navigate('/verify-email', { 
-                state: { email: formData.email }
-              });
-            }, 2000);
-          } else {
-            setError('Invalid email or password');
-          }
-        } else if (status === 500) {
-          setError('Server error. Please try again later');
-        } else {
-          setError(err.response.data?.message || 'Login failed');
-        }
-      } else if (err.request) {
-        setError('Cannot connect to server. Please check your connection');
+      // Handle Remember Me logic
+      if (rememberMe) {
+        localStorage.setItem('remembered_email', formData.email);
       } else {
-        setError(err.message || 'An unexpected error occurred');
+        localStorage.removeItem('remembered_email');
+      }
+
+      await login(formData.email, formData.password);
+      // Navigation will be handled by the useLayoutEffect above
+    } catch (err: any) {
+      // Display the exact error message from backend
+      const errorMessage = err.message || 'Login failed. Please check your credentials.';
+      setError(errorMessage);
+
+      // Handle specific cases for better UX
+      if (errorMessage.toLowerCase().includes('verify') ||
+        errorMessage.toLowerCase().includes('verification')) {
+        setTimeout(() => {
+          navigate('/verify-email', {
+            state: { email: formData.email }
+          });
+        }, 3000);
       }
     } finally {
       setLoading(false);
     }
   };
+
+  // If authenticated, render nothing while redirecting (avoids flash)
+  if (isAuthenticated && user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50/30 flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
@@ -81,9 +86,9 @@ export const LoginPage: React.FC = () => {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-100/15 rounded-full blur-3xl"></div>
       </div>
 
-      <Card 
-        padding="lg" 
-        variant="elevated" 
+      <Card
+        padding="lg"
+        variant="elevated"
         className="w-full max-w-md relative z-10 bg-white/98 backdrop-blur-xl border-white/60 shadow-2xl shadow-slate-900/10"
       >
         {/* Header */}
@@ -104,13 +109,15 @@ export const LoginPage: React.FC = () => {
 
         {/* Error message */}
         {error && (
-          <InlineAlert variant="error" icon={AlertCircle} className="mb-6 text-red-500">
-            {error}
-          </InlineAlert>
+          <div role="alert" aria-live="polite">
+            <InlineAlert variant="error" icon={AlertCircle} className="mb-6 text-red-500">
+              {error}
+            </InlineAlert>
+          </div>
         )}
 
         {/* Login Form */}
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
           <Input
             label="Email Address"
             type="email"
@@ -123,6 +130,7 @@ export const LoginPage: React.FC = () => {
             disabled={loading}
             autoComplete="email"
             icon={Mail}
+            error={error && error.toLowerCase().includes('email') ? 'Please check your email' : undefined}
           />
 
           <Input
@@ -137,32 +145,36 @@ export const LoginPage: React.FC = () => {
             disabled={loading}
             autoComplete="current-password"
             icon={Lock}
+            error={error && error.toLowerCase().includes('password') ? 'Please check your password' : undefined}
           />
 
           <div className="flex items-center justify-between text-sm pt-1">
-            <label className="flex items-center gap-2 text-gray-700 cursor-pointer group">
-              <input 
-                type="checkbox" 
-                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-0 transition-all cursor-pointer" 
+            <label className="flex items-center gap-2 text-gray-700 cursor-pointer group select-none">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-0 transition-all cursor-pointer"
               />
               <span className="group-hover:text-gray-900 transition-colors">Remember me</span>
             </label>
             <button
               type="button"
+              onClick={() => navigate('/forgot-password')} 
               className="text-blue-600 hover:text-blue-700 font-semibold transition-colors hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500/20 rounded px-1 py-0.5"
             >
               Forgot password?
             </button>
           </div>
 
-          <Button 
-            type="submit" 
-            className="w-full" 
-            loading={loading} 
+          <Button
+            type="submit"
+            className="w-full"
+            loading={loading}
             disabled={loading}
             size="lg"
           >
-            Sign In
+            {loading ? 'Signing in...' : 'Sign In'}
           </Button>
         </form>
 

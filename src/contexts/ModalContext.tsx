@@ -1,21 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import type { ModalDataMap } from '../types/modals';
 
 // Typed modal IDs
-export type ModalId = 
-  | 'addProvider'
-  | 'updateProvider'
-  | 'viewProviderDashboard'
-  | 'retryPayment'
-  | 'transactionDetails'
-  | 'exportData'
-  | 'runReconciliation'
-  | 'investigateDiscrepancy'
-  | 'updateBusinessInfo'
-  | 'createPaymentLink'
-  | 'confirmDialog'
-  | 'success'
-  | 'info'
-  | 'loading';
+export type ModalId = keyof ModalDataMap;
 
 export interface ModalCallbacks {
   onSuccess?: (result?: any) => void;
@@ -23,18 +10,22 @@ export interface ModalCallbacks {
   onClose?: () => void;
 }
 
-interface ModalState {
-  id: ModalId;
-  data?: any;
+interface ModalState<T extends ModalId = ModalId> {
+  id: T;
+  data?: ModalDataMap[T];
   callbacks?: ModalCallbacks;
   isOpen: boolean;
 }
 
 interface ModalContextValue {
   activeModal: ModalState | null;
-  openModal: (id: ModalId, data?: any, callbacks?: ModalCallbacks) => void;
+  openModal: <T extends ModalId>(
+    id: T, 
+    data?: ModalDataMap[T], 
+    callbacks?: ModalCallbacks
+  ) => void;
   closeModal: () => void;
-  updateModalData: (data: any) => void;
+  updateModalData: <T extends ModalId>(data: ModalDataMap[T]) => void;
   isModalOpen: (id: ModalId) => boolean;
 }
 

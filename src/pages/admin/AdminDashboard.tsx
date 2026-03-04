@@ -7,6 +7,7 @@ import { SectionHeader } from '../../components/section/SectionHeader';
 import { Badge } from '../../components/common/Badge';
 import { StatCard } from '../../components/common/StatCard';
 import { type User } from '../../types';
+import { formatStatus } from '../../utils/formatters';
 
 interface AdminDashboardProps {
   userData: User;
@@ -56,7 +57,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ userData, onLogo
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {stats.map((stat, idx) => (
-            <StatCard key={idx} {...stat} />
+            <StatCard key={idx} {...stat} label={stat.title} />
           ))}
         </div>
 
@@ -64,7 +65,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ userData, onLogo
           <div className="p-4 sm:p-6 border-b border-gray-200">
             <SectionHeader title="All Merchants" subtitle="System-wide merchant overview" />
           </div>
-          
+
           {/* Mobile Card View */}
           <div className="lg:hidden divide-y divide-gray-200">
             {merchants.map((merchant) => (
@@ -75,7 +76,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ userData, onLogo
                     <p className="text-sm text-gray-600">{merchant.email}</p>
                   </div>
                   <Badge variant={merchant.status === 'ACTIVE' ? 'success' : 'warning'}>
-                    {merchant.status}
+                    {formatStatus(merchant.status)}
                   </Badge>
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
@@ -118,7 +119,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ userData, onLogo
                     <td className="px-6 py-3 text-sm text-gray-600">{merchant.email}</td>
                     <td className="px-6 py-3">
                       <Badge variant={merchant.status === 'ACTIVE' ? 'success' : 'warning'}>
-                        {merchant.status}
+                        {formatStatus(merchant.status)}
                       </Badge>
                     </td>
                     <td className="px-6 py-3 text-sm font-semibold text-gray-900">{merchant.volume}</td>

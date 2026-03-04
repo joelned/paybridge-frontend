@@ -1,260 +1,228 @@
-// src/pages/merchant/tabs/OverviewTab.tsx - Refactored for consistent design system
-import { useMemo } from 'react';
-import { DollarSign, Activity, TrendingUp, GitMerge, ArrowUpRight, ArrowDownRight, Eye, ExternalLink } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Card } from '../../../components/common/Card';
 import { Button } from '../../../components/common/Button';
-import { useOverview } from '../../../hooks/queries';
+import { InlineAlert } from '../../../components/feedback/InlineAlert';
+import { merchantService } from '../../../services/merchantService';
+import { providerService } from '../../../services/providerService';
+import { getErrorMessage } from '../../../utils/errorHandler';
+import { formatStatus } from '../../../utils/formatters';
+import { CheckCircle2, Circle, CreditCard, KeyRound, PlugZap, Rocket, ShieldAlert, Store } from 'lucide-react';
 
-// Enhanced skeleton component with consistent styling
-const Skeleton = ({ className = '', width = '100%', height = '1rem' }) => (
-  <div 
-    className={`bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 bg-[length:200%_100%] animate-pulse rounded-md ${className}`}
-    style={{ width, height }}
-  />
-);
-
-const StatCardSkeleton = () => (
-  <Card className="p-6">
-    <div className="flex items-start justify-between">
-      <div className="flex-1 space-y-3">
-        <Skeleton height="0.875rem" width="60%" />
-        <Skeleton height="2rem" width="80%" />
-        <Skeleton height="0.875rem" width="40%" />
-      </div>
-      <Skeleton width="48px" height="48px" className="rounded-xl" />
-    </div>
-  </Card>
-);
-
-interface StatCardProps {
+type ChecklistItem = {
+  id: string;
   title: string;
-  value: string;
-  change?: string;
-  icon: any;
-  trend?: 'up' | 'down';
-  subtitle?: string;
-}
-
-const StatCard = ({ title, value, change, icon: Icon, trend = 'up', subtitle }: StatCardProps) => {
-  const TrendIcon = trend === 'up' ? ArrowUpRight : ArrowDownRight;
-  const trendColor = trend === 'up' ? 'text-emerald-600' : 'text-red-600';
-  const bgColor = trend === 'up' ? 'bg-emerald-50' : 'bg-red-50';
-  
-  // Fallback to DollarSign if Icon is undefined
-  const SafeIcon = Icon || DollarSign;
-  
-  return (
-    <Card hover className="p-6 group">
-      <div className="flex items-start justify-between mb-4">
-        <div className="p-3 bg-slate-100 rounded-xl group-hover:bg-slate-200 transition-colors">
-          <SafeIcon size={20} className="text-slate-600" />
-        </div>
-        {change && (
-          <div className={`flex items-center gap-1 px-2 py-1 rounded-full ${bgColor}`}>
-            <TrendIcon size={12} className={trendColor} />
-            <span className={`text-xs font-bold ${trendColor}`}>{change}</span>
-          </div>
-        )}
-      </div>
-      <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wide">{title}</h3>
-        <p className="text-3xl font-bold text-slate-900">{value}</p>
-        {subtitle && <p className="text-sm text-slate-500 font-medium">{subtitle}</p>}
-        {change && (
-          <p className="text-xs text-slate-400">vs last period</p>
-        )}
-      </div>
-    </Card>
-  );
+  description: string;
+  done: boolean;
+  actionLabel?: string;
+  actionPath?: string;
 };
 
-export const OverviewTab = () => {
-  const { data, isLoading: loading, error } = useOverview();
+export const OverviewTab: React.FC = () => {
+  const navigate = useNavigate();
 
-  // Icon mapping for API data
-  const iconMap = useMemo(() => ({
-    DollarSign,
-    Activity,
-    TrendingUp,
-    GitMerge
-  }), []);
+  const {
+    data: profile,
+    isLoading: profileLoading,
+    error: profileError,
+  } = useQuery({
+    queryKey: ['merchant-profile'],
+    queryFn: () => merchantService.getMerchantProfile(),
+    staleTime: 60 * 1000,
+  });
 
-  const statusColors = useMemo(() => ({
-    SUCCEEDED: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
-    PROCESSING: 'bg-amber-100 text-amber-800 border border-amber-200',
-    FAILED: 'bg-red-100 text-red-800 border border-red-200',
-  }), []);
+  const {
+    data: configuredProviders = [],
+    isLoading: providersLoading,
+    error: providersError,
+  } = useQuery({
+    queryKey: ['configured-providers'],
+    queryFn: () => providerService.getConfiguredProviders(),
+    staleTime: 30 * 1000,
+  });
 
-  if (loading || error) {
-    return (
-      <div className="space-y-8">
-        {/* Header skeleton */}
-        <div className="space-y-2">
-          <Skeleton height="2rem" width="300px" />
-          <Skeleton height="1rem" width="500px" />
+  const {
+    data: apiKeys = [],
+    isLoading: keysLoading,
+    error: keysError,
+  } = useQuery({
+    queryKey: ['merchant-api-keys'],
+    queryFn: () => merchantService.getApiKeys(),
+    staleTime: 30 * 1000,
+  });
+
+  const activeProviderCount = configuredProviders.filter((item) => item.enabled).length;
+  const testKey = apiKeys.find((item) => item.mode === 'TEST' && item.active);
+  const liveKey = apiKeys.find((item) => item.mode === 'LIVE' && item.active);
+
+  const checklist = useMemo<ChecklistItem[]>(() => {
+    const accountActive = profile?.status === 'ACTIVE';
+
+    return [
+      {
+        id: 'account',
+        title: 'Account is active',
+        description: accountActive
+          ? 'Your merchant account is active and ready for payment setup.'
+          : `Current status: ${profile?.status ? formatStatus(profile.status) : 'Unknown'}.`,
+        done: accountActive,
+        actionLabel: 'Open Settings',
+        actionPath: '/merchant/settings',
+      },
+      {
+        id: 'provider',
+        title: 'At least one provider is connected',
+        description:
+          activeProviderCount > 0
+            ? `${activeProviderCount} provider${activeProviderCount > 1 ? 's are' : ' is'} connected.`
+            : 'Connect Stripe or Paystack to start receiving payments.',
+        done: activeProviderCount > 0,
+        actionLabel: 'Open Providers',
+        actionPath: '/merchant/providers',
+      },
+      {
+        id: 'test-key',
+        title: 'Test API key created',
+        description: testKey
+          ? 'Your test key is active. Use it first in a safe test environment.'
+          : 'Create a test key for your developer to integrate and test checkout.',
+        done: !!testKey,
+        actionLabel: 'Open Integration',
+        actionPath: '/merchant/payments',
+      },
+      {
+        id: 'live-key',
+        title: 'Live API key ready for launch',
+        description: liveKey
+          ? 'Your live key is active. You are ready for production traffic.'
+          : 'Generate a live key when you are ready to go live.',
+        done: !!liveKey,
+        actionLabel: 'Open Integration',
+        actionPath: '/merchant/payments',
+      },
+    ];
+  }, [activeProviderCount, liveKey, profile?.status, testKey]);
+
+  const completedCount = checklist.filter((item) => item.done).length;
+  const loading = profileLoading || providersLoading || keysLoading;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Integration Readiness</h1>
+        <p className="text-sm text-slate-600 mt-1">
+          PayBridge helps you integrate once, then route payments across providers.
+        </p>
+      </div>
+
+      {(profileError || providersError || keysError) && (
+        <InlineAlert variant="error" icon={ShieldAlert} className="bg-red-50 border-red-300 text-red-800">
+          {getErrorMessage(profileError || providersError || keysError)}
+        </InlineAlert>
+      )}
+
+      <Card className="p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <h2 className="text-lg font-semibold text-slate-900">Setup Checklist</h2>
+          <span className="text-sm font-medium px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+            {completedCount}/4 complete
+          </span>
         </div>
-        
-        {/* Stats skeleton */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)}
-        </div>
 
-        {/* Provider cards skeleton */}
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <Skeleton height="1.5rem" width="200px" />
-            <Skeleton height="1rem" width="300px" />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i} className="p-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Skeleton height="1.5rem" width="100px" />
-                    <Skeleton width="12px" height="12px" className="rounded-full" />
+        {loading ? (
+          <p className="text-sm text-slate-600">Loading setup status...</p>
+        ) : (
+          <div className="space-y-3">
+            {checklist.map((item) => (
+              <div key={item.id} className="border border-slate-200 rounded-xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className={`mt-0.5 ${item.done ? 'text-emerald-600' : 'text-slate-400'}`}>
+                    {item.done ? <CheckCircle2 size={18} /> : <Circle size={18} />}
                   </div>
-                  <Skeleton height="1rem" width="100%" />
-                  <Skeleton height="1rem" width="80%" />
-                  <Skeleton height="1rem" width="60%" />
+                  <div>
+                    <p className="font-semibold text-slate-900">{item.title}</p>
+                    <p className="text-sm text-slate-600 mt-1">{item.description}</p>
+                  </div>
                 </div>
-              </Card>
-            ))}
-          </div>
-        </div>
 
-        {/* Recent transactions skeleton */}
-        <Card className="overflow-hidden">
-          <div className="p-6 border-b border-slate-200">
-            <Skeleton height="1.25rem" width="200px" />
-          </div>
-          <div className="divide-y divide-slate-100">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="flex items-center justify-between p-4">
-                <div className="flex-1 space-y-2">
-                  <Skeleton height="1rem" width="200px" />
-                  <Skeleton height="0.875rem" width="150px" />
-                </div>
-                <div className="text-right space-y-2">
-                  <Skeleton height="1rem" width="80px" />
-                  <Skeleton height="1.5rem" width="100px" />
-                </div>
+                {item.actionPath && item.actionLabel && (
+                  <Button variant="outline" size="sm" onClick={() => navigate(item.actionPath!)}>
+                    {item.actionLabel}
+                  </Button>
+                )}
               </div>
             ))}
+          </div>
+        )}
+      </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="p-5">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-indigo-50">
+              <Store size={18} className="text-indigo-600" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-slate-900">For Merchants</h2>
+              <p className="text-sm text-slate-600 mt-1">
+                Use this dashboard to connect providers and manage keys. Your developer handles code integration.
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-emerald-50">
+              <Rocket size={18} className="text-emerald-600" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-slate-900">Go-live Path</h2>
+              <p className="text-sm text-slate-600 mt-1">
+                Connect a provider, test with test key, then switch to live key when your checkout is ready.
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-blue-50">
+              <PlugZap size={18} className="text-blue-600" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-slate-900">Provider Routing</h2>
+              <p className="text-sm text-slate-600 mt-1">
+                Your backend can choose a provider per payment request, or rely on configured default behavior.
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-amber-50">
+              <KeyRound size={18} className="text-amber-600" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-slate-900">Key Security</h2>
+              <p className="text-sm text-slate-600 mt-1">
+                API keys are shown once for security. Rotate immediately if you suspect exposure.
+              </p>
+            </div>
           </div>
         </Card>
       </div>
-    );
-  }
 
-  return (
-    <div className="space-y-8">
-      {/* Page header */}
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold text-slate-900">Dashboard Overview</h1>
-        <p className="text-slate-600">Monitor your payment performance and key metrics</p>
-      </div>
-      
-      {/* Key metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {data.stats.map((stat: any, idx: number) => {
-          // Map icon name to actual component, fallback to DollarSign
-          const IconComponent = typeof stat.icon === 'string' 
-            ? iconMap[stat.icon as keyof typeof iconMap] || DollarSign
-            : stat.icon || DollarSign;
-          
-          return (
-            <StatCard key={idx} {...stat} icon={IconComponent} />
-          );
-        })}
-      </div>
-
-      {/* Provider performance */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">Provider Performance</h2>
-            <p className="text-sm text-slate-600 mt-1">Last 7 days overview across all payment providers</p>
-          </div>
-          <Button variant="outline" size="sm" icon={ExternalLink}>
-            View Details
-          </Button>
+      <Card className="p-6">
+        <div className="flex items-center gap-2 mb-2">
+          <CreditCard size={18} className="text-slate-700" />
+          <h2 className="font-semibold text-slate-900">Important</h2>
         </div>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {data.providerStats.map((stat: any, idx: number) => (
-            <Card key={idx} hover className="p-6 group">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="w-4 h-4 rounded-full shadow-sm" 
-                    style={{ backgroundColor: stat.color }}
-                  />
-                  <h3 className="font-bold text-slate-900 text-lg">{stat.provider}</h3>
-                </div>
-                <Button variant="ghost" size="sm" icon={Eye} className="opacity-0 group-hover:opacity-100 transition-opacity">
-                  View
-                </Button>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-slate-600">Volume</span>
-                  <span className="font-bold text-slate-900 text-lg">{stat.volume}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-slate-600">Transactions</span>
-                  <span className="font-semibold text-slate-900">{stat.transactions.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-slate-600">Success Rate</span>
-                  <span className="font-bold text-emerald-600">{stat.successRate}</span>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </div>
-
-      {/* Recent transactions */}
-      <Card className="overflow-hidden">
-        <div className="flex items-center justify-between p-6 border-b border-slate-200">
-          <div>
-            <h3 className="text-lg font-bold text-slate-900">Recent Transactions</h3>
-            <p className="text-sm text-slate-600 mt-1">Latest payment activity across all providers</p>
-          </div>
-          <Button variant="outline" size="sm" icon={ExternalLink}>
-            View All
-          </Button>
-        </div>
-        
-        <div className="divide-y divide-slate-100">
-          {data.recentTransactions.map((txn: any) => (
-            <div key={txn.id} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors group">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
-                    <span className="text-xs font-bold text-slate-600">
-                      {txn.customer.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900 text-sm truncate">{txn.customer}</p>
-                    <p className="text-xs text-slate-500">{txn.provider} • {txn.date}</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="text-right ml-4">
-                <p className="font-bold text-slate-900 mb-1">{txn.amount}</p>
-                <span className={`inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full ${
-                  statusColors[txn.status as keyof typeof statusColors]
-                }`}>
-                  {txn.status.toLowerCase()}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
+        <p className="text-sm text-slate-600">
+          Payment creation is intentionally not done from this dashboard. It should happen from your ecommerce server using your PayBridge API key.
+        </p>
       </Card>
     </div>
   );

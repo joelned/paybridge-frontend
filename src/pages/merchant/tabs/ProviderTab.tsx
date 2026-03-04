@@ -1,247 +1,207 @@
-import React, { useMemo } from 'react';
-import { Plus, RefreshCw, MoreHorizontal, CheckCircle, AlertTriangle, Search, Activity } from 'lucide-react';
-import { useModalContext } from '../../../contexts/ModalContext';
+import React, { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { CheckCircle2, PlugZap, RefreshCw, ShieldAlert } from 'lucide-react';
 import { Card } from '../../../components/common/Card';
 import { Button } from '../../../components/common/Button';
-import { DebouncedSearchInput } from '../../../components/common/DebouncedSearchInput';
-import { useSearchState } from '../../../hooks/useSearchState';
-import { useProviders } from '../../../hooks/queries';
+import { Input } from '../../../components/common/Input';
+import { Select } from '../../../components/common/Select';
+import { InlineAlert } from '../../../components/feedback/InlineAlert';
+import { providerService, type SupportedProviderName } from '../../../services/providerService';
+import { getErrorMessage } from '../../../utils/errorHandler';
+
+type ConfiguredProvider = {
+  configId: number;
+  providerName: string;
+  providerCode: string;
+  enabled: boolean;
+  lastVerifiedAt?: string;
+  createdAt?: string;
+};
+
+const PROVIDER_OPTIONS = [
+  { value: 'stripe', label: 'Stripe' },
+  { value: 'paystack', label: 'Paystack' },
+];
 
 export const ProvidersTab: React.FC = () => {
-  const { openModal } = useModalContext();
-  const { debouncedQuery, handleSearch, isSearching } = useSearchState({ delay: 300 });
-  const { data: providersData, isLoading, error } = useProviders();
-  
-  const providers = providersData || [];
+  const [providerName, setProviderName] = useState<SupportedProviderName>('stripe');
+  const [secretKey, setSecretKey] = useState('');
+  const [testOnConfigure, setTestOnConfigure] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isTestingConfigId, setIsTestingConfigId] = useState<number | null>(null);
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
-  const filteredProviders = useMemo(() => {
-    return providers.filter(provider => 
-      provider.name.toLowerCase().includes(debouncedQuery.toLowerCase())
-    );
-  }, [providers, debouncedQuery]);
+  const {
+    data: configuredProviders = [],
+    isLoading,
+    error: loadError,
+    refetch,
+  } = useQuery<ConfiguredProvider[]>({
+    queryKey: ['configured-providers'],
+    queryFn: () => providerService.getConfiguredProviders(),
+  });
 
-  const activeProviders = filteredProviders.filter(p => p.status === 'ACTIVE').length;
+  const canSubmit = useMemo(() => secretKey.trim().length > 0, [secretKey]);
+
+  const handleConfigure = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSubmit) {
+      return;
+    }
+
+    setError('');
+    setSuccessMessage('');
+    setIsSubmitting(true);
+
+    try {
+      const response = await providerService.configureProvider({
+        name: providerName,
+        config: { secretKey: secretKey.trim() },
+        testConnection: testOnConfigure,
+      });
+
+      setSuccessMessage(`${response.provider} configured successfully.`);
+      setSecretKey('');
+      await refetch();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRetest = async (configId: number) => {
+    setError('');
+    setSuccessMessage('');
+    setIsTestingConfigId(configId);
+
+    try {
+      const result = await providerService.testProvider(configId);
+      setSuccessMessage(result.message || `Connection test passed for config #${configId}.`);
+      await refetch();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setIsTestingConfigId(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
-      {/* Clean header with primary action */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Payment Providers</h1>
-          <p className="text-sm text-slate-600 mt-1">Manage your payment processing connections</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" icon={RefreshCw}>
-            Sync Status
-          </Button>
-          <Button variant="primary" size="sm" icon={Plus} onClick={() => openModal('addProvider')}>
-            Add Provider
-          </Button>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Connect Payment Methods</h1>
+        <p className="text-sm text-slate-600 mt-1">
+          Add your Stripe or Paystack account so you can receive customer payments.
+        </p>
       </div>
 
-      {/* Quick status overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-5 hover:shadow-md transition-shadow duration-200">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-2xl font-bold text-slate-900">{activeProviders}</p>
-              <p className="text-sm font-medium text-slate-600">Active Providers</p>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full" />
-                <span className="text-xs text-emerald-600 font-medium">All operational</span>
-              </div>
-            </div>
-            <div className="p-2 bg-emerald-50 rounded-lg">
-              <CheckCircle className="text-emerald-600" size={20} />
-            </div>
-          </div>
-        </Card>
-        <Card className="p-5 hover:shadow-md transition-shadow duration-200">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-2xl font-bold text-slate-900">{providers.length}</p>
-              <p className="text-sm font-medium text-slate-600">Total Connected</p>
-              <p className="text-xs text-slate-500">Across all gateways</p>
-            </div>
-            <div className="p-2 bg-indigo-50 rounded-lg">
-              <div className="w-5 h-5 bg-indigo-600 rounded-full" />
-            </div>
-          </div>
-        </Card>
-        <Card className="p-5 hover:shadow-md transition-shadow duration-200">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-2xl font-bold text-slate-900">98.5%</p>
-              <p className="text-sm font-medium text-slate-600">Success Rate</p>
-              <p className="text-xs text-slate-500">Last 30 days</p>
-            </div>
-            <div className="p-2 bg-emerald-50 rounded-lg">
-              <div className="w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
-                <CheckCircle className="text-white" size={12} />
-              </div>
-            </div>
-          </div>
-        </Card>
-      </div>
+      {error && (
+        <InlineAlert
+          variant="error"
+          icon={ShieldAlert}
+          className="bg-red-50 border-red-300 text-red-800"
+        >
+          {error}
+        </InlineAlert>
+      )}
 
-      {/* Provider cards with clear status and minimal actions */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-900">Connected Providers</h2>
-          <div className="flex items-center gap-2">
-            <DebouncedSearchInput
-              placeholder="Search providers..."
-              onSearch={handleSearch}
-              delay={300}
-              className="w-48"
-              isLoading={isSearching}
+      {loadError && (
+        <InlineAlert
+          variant="error"
+          icon={ShieldAlert}
+          className="bg-red-50 border-red-300 text-red-800"
+        >
+          {getErrorMessage(loadError)}
+        </InlineAlert>
+      )}
+
+      {successMessage && (
+        <InlineAlert variant="success" icon={CheckCircle2}>
+          {successMessage}
+        </InlineAlert>
+      )}
+
+      <Card className="p-6">
+        <div className="mb-4 text-sm text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-3">
+          You can find your secret key in your payment provider dashboard. We use it only to connect your account.
+        </div>
+        <form onSubmit={handleConfigure} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Select
+              label="Payment Company"
+              value={providerName}
+              onChange={(e) => setProviderName(e.target.value as SupportedProviderName)}
+              options={PROVIDER_OPTIONS}
+              required
+            />
+            <Input
+              label="Secret Key"
+              type="password"
+              value={secretKey}
+              onChange={(e) => setSecretKey(e.target.value)}
+              placeholder={providerName === 'stripe' ? 'sk_test_...' : 'sk_test_paystack_...'}
+              required
             />
           </div>
-        </div>
-        
+
+          <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={testOnConfigure}
+              onChange={(e) => setTestOnConfigure(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-300"
+            />
+            Check connection now
+          </label>
+
+          <Button type="submit" variant="primary" icon={PlugZap} disabled={isSubmitting || !canSubmit} loading={isSubmitting}>
+            Connect Account
+          </Button>
+        </form>
+      </Card>
+
+      <Card className="p-6">
+        <h2 className="text-lg font-semibold text-slate-900 mb-4">Connected Accounts</h2>
+
         {isLoading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600">Loading providers...</p>
-          </div>
-        ) : error ? (
-          <div className="text-center py-8">
-            <p className="text-red-600">Error loading providers</p>
-            <Button variant="outline" size="sm" className="mt-2" onClick={() => window.location.reload()}>
-              Retry
-            </Button>
-          </div>
+          <p className="text-sm text-slate-600">Loading connected providers...</p>
+        ) : configuredProviders.length === 0 ? (
+          <p className="text-sm text-slate-600">No providers configured yet.</p>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {filteredProviders.map((provider) => (
-            <Card key={provider.id} className="p-5 hover:shadow-md transition-all duration-200 group">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <div 
-                      className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-sm"
-                      style={{ backgroundColor: provider.color }}
-                    >
-                      {provider.name[0]}
-                    </div>
-                    <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
-                      provider.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-slate-400'
-                    }`} />
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="font-semibold text-slate-900 text-lg">{provider.name}</h3>
-                    <div className="flex items-center gap-2">
-                      <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${
-                        provider.status === 'ACTIVE' 
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                          : 'bg-slate-100 text-slate-600 border border-slate-200'
-                      }`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${
-                          provider.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-slate-400'
-                        }`} />
-                        {provider.status === 'ACTIVE' ? 'Connected' : 'Inactive'}
-                      </span>
-                      {provider.status === 'ACTIVE' && provider.responseTime && (
-                        <span className="text-xs text-slate-500">{provider.responseTime}ms avg</span>
-                      )}
-                    </div>
-                  </div>
+          <div className="space-y-3">
+            {configuredProviders.map((config) => (
+              <div key={config.configId} className="border border-slate-200 rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-slate-900">{config.providerName}</p>
+                  <p className="text-xs text-slate-600">{config.enabled ? 'Active' : 'Inactive'}</p>
+                  <p className="text-xs text-slate-500">Connected: {config.createdAt ? new Date(config.createdAt).toLocaleString() : 'N/A'}</p>
+                  {config.lastVerifiedAt && (
+                    <p className="text-xs text-slate-600 mt-1">
+                      Last connection check: {new Date(config.lastVerifiedAt).toLocaleString()}
+                    </p>
+                  )}
+                  <details className="mt-2">
+                    <summary className="text-xs text-slate-500 cursor-pointer">Technical details</summary>
+                    <p className="text-xs text-slate-500 mt-1">Reference ID: {config.configId}</p>
+                    <p className="text-xs text-slate-500 mt-1">Code: {config.providerCode}</p>
+                  </details>
                 </div>
-                <button className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-slate-100 rounded-lg transition-all">
-                  <MoreHorizontal size={16} className="text-slate-500" />
-                </button>
-              </div>
 
-              {/* Key metrics in clean layout */}
-              <div className="grid grid-cols-3 gap-4 mb-5">
-                <div className="text-center">
-                  <p className="text-lg font-bold text-slate-900">
-                    ${provider.volume && provider.volume > 0 ? (provider.volume / 1000).toFixed(0) + 'K' : '0'}
-                  </p>
-                  <p className="text-xs text-slate-600 font-medium">Volume</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-lg font-bold text-slate-900">
-                    {provider.transactions ? provider.transactions.toLocaleString() : '0'}
-                  </p>
-                  <p className="text-xs text-slate-600 font-medium">Transactions</p>
-                </div>
-                <div className="text-center">
-                  <p className={`text-lg font-bold ${
-                    provider.successRate && provider.successRate > 95 ? 'text-emerald-600' : 
-                    provider.successRate && provider.successRate > 90 ? 'text-amber-600' : 'text-red-600'
-                  }`}>
-                    {provider.successRate && provider.successRate > 0 ? provider.successRate.toFixed(1) + '%' : 'N/A'}
-                  </p>
-                  <p className="text-xs text-slate-600 font-medium">Success</p>
-                </div>
-              </div>
-
-              {/* Minimal action buttons */}
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex-1"
-                  onClick={() => openModal('viewProviderDashboard', { provider })}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={RefreshCw}
+                  onClick={() => handleRetest(config.configId)}
+                  disabled={isTestingConfigId === config.configId}
+                  loading={isTestingConfigId === config.configId}
                 >
-                  Analytics
-                </Button>
-                <Button 
-                  variant="primary" 
-                  size="sm" 
-                  className="flex-1"
-                  onClick={() => openModal('updateProvider', { provider })}
-                >
-                  Configure
+                  Check Again
                 </Button>
               </div>
-            </Card>
             ))}
           </div>
         )}
-      </div>
-
-      {/* Clean activity feed */}
-      <Card>
-        <div className="p-5 border-b border-slate-100">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-slate-900">Recent Activity</h3>
-            <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">Live</span>
-          </div>
-        </div>
-        <div className="p-5">
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center mt-0.5">
-                <CheckCircle className="text-emerald-600" size={14} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-900">Stripe webhook verified</p>
-                <p className="text-xs text-slate-500 mt-1">Connection health check passed • 2 minutes ago</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center mt-0.5">
-                <Activity className="text-indigo-600" size={14} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-900">PayPal transaction processed</p>
-                <p className="text-xs text-slate-500 mt-1">$249.00 payment completed • 5 minutes ago</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center mt-0.5">
-                <AlertTriangle className="text-amber-600" size={14} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-900">Flutterwave connection idle</p>
-                <p className="text-xs text-slate-500 mt-1">No activity detected • 1 hour ago</p>
-              </div>
-            </div>
-          </div>
-        </div>
       </Card>
     </div>
   );

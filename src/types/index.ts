@@ -4,19 +4,30 @@ export type { ApiResponse, ApiErrorResponse, ValidationError, ApiError } from '.
 
 // Re-export service types (avoid duplicates)
 export type {
-  // Payment types
-  Payment, CreatePaymentRequest, PaymentResponse, PaymentListResponse, PaymentFilters,
-  // Provider types  
-  PaymentProvider, CreateProviderRequest, UpdateProviderRequest, ProviderTestRequest, ProviderTestResponse,
-  // Reconciliation types
-  ReconciliationRecord, ReconciliationSummary, ReconciliationFilters, ReconciliationListResponse, StartReconciliationRequest, ReconciliationJob,
-  // Analytics types
-  AnalyticsMetrics, TimeSeriesData, PaymentAnalytics, RevenueAnalytics, CustomerAnalytics, AnalyticsFilters, DashboardAnalytics,
-  // Payment Link types
-  PaymentLink, CreatePaymentLinkRequest, UpdatePaymentLinkRequest, PaymentLinkUsage, PaymentLinkAnalytics, PaymentLinkFilters, PaymentLinkListResponse,
-  // Merchant types
-  MerchantProfile, UpdateMerchantProfileRequest, MerchantSettings, UpdateMerchantSettingsRequest, ChangePasswordRequest, MerchantVerificationDocument, MerchantStatistics
-} from '../services';
+  // Provider types
+  ConfigureProviderRequest,
+  ConfigureProviderResponse,
+  ConfiguredProviderResponse,
+  TestProviderResponse
+} from '../services/providerService';
+export type {
+  AnalyticsMetrics,
+  TimeSeriesData,
+  PaymentAnalytics,
+  RevenueAnalytics,
+  CustomerAnalytics,
+  AnalyticsFilters,
+  DashboardAnalytics
+} from '../services/analyticsService';
+export type {
+  MerchantProfile,
+  UpdateMerchantProfileRequest,
+  MerchantSettings,
+  UpdateMerchantSettingsRequest,
+  ChangePasswordRequest,
+  MerchantVerificationDocument,
+  MerchantStatistics
+} from '../services/merchantService';
 
 // Component prop types
 export interface StatCardProps {

@@ -5,7 +5,7 @@ import { formatNumber, formatPercentage } from '../../utils/formatters';
 interface StatCardProps {
   label: string;
   value: string | number;
-  change?: number;
+  change?: number | string;
   trend?: 'up' | 'down' | 'neutral';
   icon?: React.ComponentType<any>;
   color?: 'primary' | 'success' | 'warning' | 'danger' | 'info';
@@ -66,7 +66,7 @@ export const StatCard = React.memo(({
   const trendStyle = TREND_STYLES[trend];
   const TrendIcon = trendStyle.icon;
 
-  const formattedValue = typeof value === 'number' 
+  const formattedValue = typeof value === 'number'
     ? formatNumber(value, { compact: true })
     : value;
 
@@ -91,7 +91,7 @@ export const StatCard = React.memo(({
     <div className={`group relative overflow-hidden bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-all duration-200 ${className}`}>
       {/* Accent bar */}
       <div className={`absolute top-0 left-0 right-0 h-1 ${colorStyle.accent}`} />
-      
+
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         {Icon && (
@@ -99,11 +99,13 @@ export const StatCard = React.memo(({
             <Icon className={`w-5 h-5 ${colorStyle.iconColor}`} />
           </div>
         )}
-        
+
         {change !== undefined && (
           <div className={`flex items-center gap-1 text-sm font-medium ${trendStyle.color}`}>
             <TrendIcon size={14} />
-            <span>{formatPercentage(Math.abs(change))}</span>
+            <span>
+              {typeof change === 'number' ? formatPercentage(Math.abs(change)) : change}
+            </span>
           </div>
         )}
       </div>

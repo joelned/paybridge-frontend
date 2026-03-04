@@ -5,10 +5,22 @@ export function handleApiError(error: AxiosError): ApiError {
   const response = error.response;
   
   if (response?.data) {
-    const errorData = response.data as ApiErrorResponse;
+    const errorData = response.data as any;
+    const nestedErrorMessage =
+      typeof errorData?.error === 'object' && errorData?.error !== null
+        ? errorData.error.message || errorData.error.error || null
+        : null;
+    
+    // Extract message from various possible response structures
+    const message = errorData.message || 
+                   nestedErrorMessage ||
+                   errorData.error || 
+                   errorData.msg || 
+                   (typeof errorData === 'string' ? errorData : null) ||
+                   'An error occurred';
     
     return new ApiError(
-      errorData.message || 'An error occurred',
+      message,
       errorData.errors,
       errorData.timestamp,
       response.status

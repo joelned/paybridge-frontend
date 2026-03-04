@@ -1,27 +1,27 @@
 import React from 'react';
 import { LoadingSkeleton } from './LoadingSkeleton';
 
-interface Column {
-  key: string;
+export interface Column<T> {
+  key: keyof T;
   label: string;
-  render?: (value: any, row: any) => React.ReactNode;
+  render?: (value: T[keyof T], row: T) => React.ReactNode;
 }
 
-interface Props {
-  columns: Column[];
-  data: any[];
+interface Props<T> {
+  columns: Column<T>[];
+  data: T[];
   loading?: boolean;
   emptyMessage?: string;
   className?: string;
 }
 
-export const DataTable: React.FC<Props> = ({
+export const DataTable = <T extends object>({
   columns,
   data,
   loading = false,
   emptyMessage = 'No data available',
   className = ''
-}) => {
+}: Props<T>) => {
   if (loading) {
     return <LoadingSkeleton variant="table" rows={5} className={className} />;
   }
@@ -42,7 +42,7 @@ export const DataTable: React.FC<Props> = ({
             <tr>
               {columns.map((column) => (
                 <th
-                  key={column.key}
+                  key={String(column.key)}
                   className="px-6 py-4 text-left text-sm font-semibold text-slate-900"
                 >
                   {column.label}
@@ -54,8 +54,8 @@ export const DataTable: React.FC<Props> = ({
             {data.map((row, index) => (
               <tr key={index} className="hover:bg-slate-50 transition-colors">
                 {columns.map((column) => (
-                  <td key={column.key} className="px-6 py-4 text-sm text-slate-900">
-                    {column.render ? column.render(row[column.key], row) : row[column.key]}
+                  <td key={String(column.key)} className="px-6 py-4 text-sm text-slate-900">
+                    {column.render ? column.render(row[column.key], row) : String(row[column.key])}
                   </td>
                 ))}
               </tr>

@@ -1,4 +1,3 @@
-// src/contexts/AuthContext.tsx - Cookie-based auth with proper session sync
 import React, { createContext, useContext, useEffect, useState, type ReactNode, useCallback, useRef } from 'react';
 import { authService } from '../services/authService';
 import { setAuthErrorHandler } from '../services/api/axiosConfig';
@@ -20,34 +19,30 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    // Initialize with cached user if available
-    return authService.getCachedUser();
-  });
+  const [user, setUser] = useState<User | null>(() => authService.getCachedUser());
   const [isLoading, setIsLoading] = useState(true);
   const initializingRef = useRef(false);
 
-  // Handle auth errors from axios interceptor
   const handleAuthError = useCallback(() => {
     setUser(null);
-    setIsLoading(false);
+    authService.clearStoredData();
   }, []);
 
-  // Initialize auth - load from cache only
   useEffect(() => {
     if (initializingRef.current) return;
-    
+
     initializingRef.current = true;
     setAuthErrorHandler(handleAuthError);
 
     const initAuth = async () => {
       try {
-        // Load cached user data (no backend call)
-        const cachedUser = await authService.getCurrentUser();
-        setUser(cachedUser);
+        // Load cached user and validate cookie-backed session with backend.
+        const currentUser = await authService.getCurrentUser();
+        setUser(currentUser);
       } catch (error) {
         console.error('Auth initialization failed:', error);
         setUser(null);
+        authService.clearStoredData();
       } finally {
         setIsLoading(false);
         initializingRef.current = false;
@@ -78,11 +73,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const refreshUser = async (): Promise<void> => {
-    if (initializingRef.current) return; // Prevent concurrent refresh
-    
-    // Just reload from cache since we don't have /auth/me
-    const cachedUser = await authService.getCurrentUser();
-    setUser(cachedUser);
+    if (initializingRef.current) return;
+
+    try {
+      const currentUser = await authService.getCurrentUser();
+      setUser(currentUser);
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
+    }
   };
 
   const value: AuthContextType = {

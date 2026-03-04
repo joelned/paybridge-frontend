@@ -20,22 +20,21 @@ interface ResponsiveDataTableProps<T> {
 }
 
 // Mobile Card View Component
-const MobileCard = React.memo(<T,>({ 
-  item, 
-  columns, 
-  onRowClick 
-}: { 
-  item: T; 
-  columns: Column<T>[]; 
+const MobileCard = React.memo(<T,>({
+  item,
+  columns,
+  onRowClick
+}: {
+  item: T;
+  columns: Column<T>[];
   onRowClick?: (item: T) => void;
 }) => {
   const visibleColumns = columns.filter(col => !col.hideOnMobile);
 
   return (
-    <div 
-      className={`bg-white border border-gray-200 rounded-lg p-4 shadow-sm transition-all duration-200 ${
-        onRowClick ? 'cursor-pointer hover:shadow-md active:scale-[0.98] min-h-[44px]' : ''
-      }`}
+    <div
+      className={`bg-white border border-gray-200 rounded-lg p-4 shadow-sm transition-all duration-200 ${onRowClick ? 'cursor-pointer hover:shadow-md active:scale-[0.98] min-h-[44px]' : ''
+        }`}
       onClick={() => onRowClick?.(item)}
       role={onRowClick ? "button" : undefined}
       tabIndex={onRowClick ? 0 : undefined}
@@ -46,7 +45,7 @@ const MobileCard = React.memo(<T,>({
             {column.mobileLabel || column.header}
           </div>
           <div className="text-sm text-gray-900 font-medium text-right ml-4">
-            {column.render 
+            {column.render
               ? column.render(item[column.key], item)
               : String(item[column.key] || '')
             }
@@ -65,14 +64,14 @@ const MobileCard = React.memo(<T,>({
 MobileCard.displayName = 'MobileCard';
 
 // Desktop Table Component
-const DesktopTable = React.memo(<T,>({ 
-  data, 
-  columns, 
+const DesktopTable = React.memo(<T,>({
+  data,
+  columns,
   onRowClick,
-  keyExtractor 
-}: { 
-  data: T[]; 
-  columns: Column<T>[]; 
+  keyExtractor
+}: {
+  data: T[];
+  columns: Column<T>[];
   onRowClick?: (item: T) => void;
   keyExtractor?: (item: T) => string;
 }) => (
@@ -102,7 +101,7 @@ const DesktopTable = React.memo(<T,>({
                 key={String(column.key)}
                 className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
               >
-                {column.render 
+                {column.render
                   ? column.render(item[column.key], item)
                   : String(item[column.key] || '')
                 }
@@ -176,7 +175,7 @@ export const ResponsiveDataTable = React.memo(<T,>({
           <MobileCard
             key={keyExtractor ? keyExtractor(item) : index}
             item={item}
-            columns={memoizedColumns}
+            columns={memoizedColumns as any}
             onRowClick={onRowClick}
           />
         ))}
@@ -188,7 +187,7 @@ export const ResponsiveDataTable = React.memo(<T,>({
     <div className="bg-white rounded-lg shadow overflow-hidden">
       <DesktopTable
         data={memoizedData}
-        columns={memoizedColumns}
+        columns={memoizedColumns as any}
         onRowClick={onRowClick}
         keyExtractor={keyExtractor}
       />

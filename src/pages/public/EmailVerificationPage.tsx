@@ -6,6 +6,7 @@ import { Button } from '../../components/common/Button';
 import { Card } from '../../components/common/Card';
 import { InlineAlert } from '../../components/feedback/InlineAlert';
 import { authService } from '../../services/authService';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 interface LocationState {
   email?: string;
@@ -135,27 +136,21 @@ export const EmailVerificationPage: React.FC = () => {
           state: { message: 'Email verified successfully! Please log in.' }
         });
       }, 2000);
-    } catch (err: any) {
-      if (err.response) {
-        const message = err.response.data?.message || 'Verification failed';
-        
-        // Check the actual message content instead of status codes
-        if (message.includes('expired')) {
-          setError('Verification code has expired. Please request a new one.');
-          setTimeRemaining(0);
-        } else if (message.includes('Too many verification attempts')) {
-          setError('Too many attempts. Please request a new code.');
-        } else if (message.includes('Invalid verification code')) {
-          setError('Invalid verification code. Please try again.');
-        } else if (message.includes('already verified')) {
-          setError('Email is already verified. Please log in.');
-        } else if (message.includes('No account found')) {
-          setError('No account found with this email. Please register again.');
-        } else {
-          setError(message);
-        }
+    } catch (err: unknown) {
+      const message = getErrorMessage(err) || 'Verification failed';
+      if (message.includes('expired')) {
+        setError('Verification code has expired. Please request a new one.');
+        setTimeRemaining(0);
+      } else if (message.includes('Too many verification attempts')) {
+        setError('Too many attempts. Please request a new code.');
+      } else if (message.includes('Invalid verification code')) {
+        setError('Invalid verification code. Please try again.');
+      } else if (message.includes('already verified')) {
+        setError('Email is already verified. Please log in.');
+      } else if (message.includes('No account found')) {
+        setError('No account found with this email. Please register again.');
       } else {
-        setError('Cannot connect to server. Please check your connection.');
+        setError(message);
       }
       
       // Clear the code on error
@@ -191,16 +186,8 @@ export const EmailVerificationPage: React.FC = () => {
       }, 3000);
       
       inputRefs.current[0]?.focus();
-    } catch (err: any) {
-      if (err.response?.data?.message) {
-        setError(err.response.data.message);
-      } else if (err.response?.status === 429) {
-        setError('Too many requests. Please wait before requesting another code.');
-      } else if (err.response?.status === 400) {
-        setError(err.response.data?.message || 'Failed to resend code. Please try again.');
-      } else {
-        setError('Failed to resend code. Please try again.');
-      }
+    } catch (err: unknown) {
+      setError(getErrorMessage(err) || 'Failed to resend code. Please try again.');
     } finally {
       setLoading(false);
     }

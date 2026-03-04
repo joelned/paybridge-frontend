@@ -21,7 +21,22 @@ interface RegisterResponse {
 
 class AuthService {
   private readonly USER_KEY = 'user';
-  private authCheckInProgress = false;
+
+  private mapAuthPayloadToUser(data: Partial<LoginResponse>): User {
+    if (!data.email) {
+      throw new ApiError('Invalid auth response: missing email');
+    }
+
+    const userType = normalizeUserType(data.userType || data.user_type || data.type);
+    return {
+      id: data.id || data.email,
+      email: data.email,
+      username: data.username || data.name || data.email.split('@')[0],
+      userType,
+      roles: normalizeUserRoles(data.userType || data.user_type || data.roles || data.type),
+      businessName: data.businessName || data.business_name,
+    };
+  }
 
   /**
    * Register new user
@@ -38,64 +53,75 @@ class AuthService {
    * Verify email with code
    */
   async verifyEmail(email: string, code: string): Promise<{ message: string }> {
-    const response = await axiosInstance.post('/auth/verify-email', { 
-      email, 
-      code 
+    const response = await axiosInstance.post<string>('/auth/verify-email', {
+      email,
+      code
     });
-    return response.data;
+    return { message: response.data };
   }
 
   /**
    * Resend verification code
    */
   async resendVerificationCode(email: string): Promise<{ message: string }> {
-    const response = await axiosInstance.post('/auth/resend-verification', { 
-      email 
+    const response = await axiosInstance.post<{ message?: string }>('/auth/resend-verification', {
+      email
     });
-    return response.data;
+    return { message: response.data?.message || 'Verification code sent successfully' };
+  }
+
+  /**
+   * Request password reset code (logged out flow)
+   */
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const response = await axiosInstance.post<string>('/auth/forgot-password', { email });
+    return { message: response.data };
+  }
+
+  /**
+   * Complete password reset with emailed code
+   */
+  async resetPassword(payload: {
+    email: string;
+    code: string;
+    newPassword: string;
+    confirmPassword: string;
+  }): Promise<{ message: string }> {
+    const response = await axiosInstance.post<string>('/auth/reset-password', payload);
+    return { message: response.data };
   }
 
   /**
    * Login user - uses login response data directly
    */
   async login(email: string, password: string): Promise<{ user: User }> {
+    const loginRequest: LoginRequest = { email, password };
+    const response = await axiosInstance.post<LoginResponse>('/auth/login', loginRequest);
+    const user = this.mapAuthPayloadToUser(response.data);
+
+    this.storeUserData(user);
+    return { user };
+  }
+
+  /**
+   * Fetch authenticated user from backend cookie session.
+   */
+  async getMe(): Promise<User> {
+    const response = await axiosInstance.get<Partial<LoginResponse>>('/auth/me');
+    const user = this.mapAuthPayloadToUser(response.data);
+    this.storeUserData(user);
+    return user;
+  }
+
+  /**
+   * Validate that backend still considers this browser authenticated.
+   */
+  async validateSession(): Promise<boolean> {
     try {
-      const loginRequest: LoginRequest = { email, password };
-      const response = await axiosInstance.post<LoginResponse>('/auth/login', loginRequest);
-      const data = response.data;
-
-      // Validate required fields
-      if (!data.email) {
-        throw new ApiError('Invalid login response: missing email');
-      }
-
-      // Create user from login response with field name variations
-      const userType = normalizeUserType(data.userType || data.user_type || data.type);
-      const user: User = {
-        id: data.id || data.email,
-        email: data.email,
-        username: data.username || data.name || data.email.split('@')[0],
-        userType,
-        roles: normalizeUserRoles(data.userType || data.user_type || data.roles || data.type),
-        businessName: data.businessName || data.business_name
-      };
-
-      // Store user data locally
-      this.storeUserData(user);
-      return { user };
-    } catch (error: any) {
-      if (error instanceof ApiError) {
-        throw error;
-      }
-      
-      // Handle axios errors
-      if (error.response) {
-        const status = error.response.status;
-        const message = error.response.data?.message || 'Login failed';
-        throw new ApiError(message, error.response.data?.errors, undefined, status);
-      }
-      
-      throw new ApiError('Login failed: Network error');
+      await this.getMe();
+      return true;
+    } catch {
+      return false;
     }
   }
 
@@ -103,22 +129,30 @@ class AuthService {
    * Store user data (no token needed with HTTP-only cookies)
    */
   storeUserData(user: User): void {
-    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+    try {
+      localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+    } catch (error) {
+      console.error('Failed to store user data:', error);
+    }
   }
 
   /**
-   * Get current user from local storage (no backend call)
+   * Get current user from backend session, fallback to cache if valid session cannot be verified.
    */
   async getCurrentUser(): Promise<User | null> {
-    return this.getCachedUser();
+    try {
+      return await this.getMe();
+    } catch {
+      this.clearStoredData();
+      return null;
+    }
   }
 
   /**
-   * Check if user is authenticated by checking cached user data
+   * Check if user is authenticated by checking backend session
    */
   async isAuthenticated(): Promise<boolean> {
-    const cachedUser = this.getCachedUser();
-    return cachedUser !== null;
+    return (await this.getCurrentUser()) !== null;
   }
 
   /**
@@ -129,8 +163,9 @@ class AuthService {
     if (!userJson) return null;
 
     try {
-      return JSON.parse(userJson);
+      return JSON.parse(userJson) as User;
     } catch {
+      this.clearStoredData(); // Clear invalid data
       return null;
     }
   }
@@ -143,19 +178,13 @@ class AuthService {
   }
 
   /**
-   * Logout user - clears local data and optionally calls backend
+   * Logout user and clear server-side JWT cookie + local state
    */
   async logout(): Promise<void> {
     try {
-      // Try to call backend logout if endpoint exists
       await axiosInstance.post('/auth/logout');
-    } catch (error) {
-      // Ignore logout endpoint errors - may not exist
-      console.warn('Backend logout call failed (endpoint may not exist):', error);
     } finally {
-      // Always clear local data
       this.clearStoredData();
-      this.authCheckInProgress = false;
     }
   }
 }

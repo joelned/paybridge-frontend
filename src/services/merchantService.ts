@@ -2,11 +2,29 @@ import { axiosInstance } from './api/axiosConfig';
 import { ApiError } from '../types/api';
 
 export interface MerchantProfile {
-  id: string;
+  id: string | number;
   businessName: string;
   email: string;
   businessType: string;
   businessCountry: string;
+  websiteUrl?: string;
+  webhookUrl?: string;
+  testMode?: boolean;
+  status:
+    | 'ACTIVE'
+    | 'INACTIVE'
+    | 'PENDING_VERIFICATION'
+    | 'PENDING_EMAIL_VERIFICATION'
+    | 'SUSPENDED'
+    | 'REJECTED'
+    | string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateMerchantProfileRequest {
+  businessName?: string;
+  businessType?: string;
   websiteUrl?: string;
   contactPhone?: string;
   address?: {
@@ -28,21 +46,6 @@ export interface MerchantProfile {
     bankName: string;
     bankCountry: string;
   };
-  status: 'ACTIVE' | 'INACTIVE' | 'PENDING_VERIFICATION' | 'SUSPENDED';
-  verificationStatus: 'UNVERIFIED' | 'PENDING' | 'VERIFIED' | 'REJECTED';
-  createdAt: string;
-  updatedAt: string;
-  lastLoginAt?: string;
-}
-
-export interface UpdateMerchantProfileRequest {
-  businessName?: string;
-  businessType?: string;
-  websiteUrl?: string;
-  contactPhone?: string;
-  address?: MerchantProfile['address'];
-  businessRegistration?: MerchantProfile['businessRegistration'];
-  bankingDetails?: MerchantProfile['bankingDetails'];
 }
 
 export interface MerchantSettings {
@@ -96,10 +99,47 @@ export interface MerchantStatistics {
   totalRevenue: number;
   successRate: number;
   averageTransactionValue: number;
-  activePaymentLinks: number;
   connectedProviders: number;
   accountAge: number; // in days
   lastPaymentDate?: string;
+}
+
+export interface MerchantProviderAnalytics {
+  providerCode: string;
+  providerName: string;
+  transactions: number;
+  successfulTransactions: number;
+  failedTransactions: number;
+  successRate: number;
+  processedAmount: number;
+}
+
+export interface MerchantDailyAnalyticsPoint {
+  date: string;
+  transactions: number;
+  successfulTransactions: number;
+  processedAmount: number;
+}
+
+export interface MerchantWebhookSecretSummary {
+  provider: 'stripe' | 'paystack' | string;
+  configured: boolean;
+  maskedSecret?: string;
+}
+
+export interface MerchantAnalytics {
+  days: number;
+  totalTransactions: number;
+  successfulTransactions: number;
+  failedTransactions: number;
+  pendingTransactions: number;
+  successRate: number;
+  totalProcessedAmount: number;
+  averageTransactionAmount: number;
+  primaryCurrency: string;
+  currenciesUsed: string[];
+  providers: MerchantProviderAnalytics[];
+  dailyTrend: MerchantDailyAnalyticsPoint[];
 }
 
 class MerchantService {
@@ -214,6 +254,16 @@ class MerchantService {
   }
 
   /**
+   * Get high-level payment analytics across providers
+   */
+  async getMerchantAnalytics(days: number = 30): Promise<MerchantAnalytics> {
+    const response = await axiosInstance.get<MerchantAnalytics>('/merchants/analytics', {
+      params: { days },
+    });
+    return response.data;
+  }
+
+  /**
    * Request account verification
    */
   async requestAccountVerification(): Promise<{ message: string; status: string }> {
@@ -230,29 +280,29 @@ class MerchantService {
   }
 
   /**
-   * Generate API key
+   * Generate or rotate API key
    */
-  async generateApiKey(name: string, permissions: string[]): Promise<{ 
-    keyId: string; 
-    key: string; 
-    name: string; 
-    permissions: string[];
+  async generateApiKey(mode: 'TEST' | 'LIVE'): Promise<{
+    keyId: 'test' | 'live';
+    mode: 'TEST' | 'LIVE';
+    label: string;
+    key: string;
     createdAt: string;
   }> {
-    const response = await axiosInstance.post('/merchants/api-keys', { name, permissions });
+    const response = await axiosInstance.post('/merchants/api-keys', { mode });
     return response.data;
   }
 
   /**
-   * Get API keys
+   * Get API keys (masked values only)
    */
   async getApiKeys(): Promise<{
-    keyId: string;
-    name: string;
-    permissions: string[];
-    lastUsed?: string;
-    createdAt: string;
-    isActive: boolean;
+    keyId: 'test' | 'live';
+    mode: 'TEST' | 'LIVE';
+    label: string;
+    maskedKey?: string;
+    active: boolean;
+    updatedAt?: string;
   }[]> {
     const response = await axiosInstance.get('/merchants/api-keys');
     return response.data;
@@ -263,6 +313,36 @@ class MerchantService {
    */
   async revokeApiKey(keyId: string): Promise<void> {
     await axiosInstance.delete(`/merchants/api-keys/${keyId}`);
+  }
+
+  /**
+   * Get masked webhook secret metadata for a provider
+   */
+  async getWebhookSecret(provider: 'stripe' | 'paystack'): Promise<MerchantWebhookSecretSummary> {
+    const response = await axiosInstance.get<MerchantWebhookSecretSummary>(`/merchants/webhooks/${provider}`);
+    return response.data;
+  }
+
+  /**
+   * Save webhook secret for a provider
+   */
+  async setWebhookSecret(provider: 'stripe' | 'paystack', secret: string): Promise<MerchantWebhookSecretSummary> {
+    const response = await axiosInstance.put<MerchantWebhookSecretSummary>(
+      `/merchants/webhooks/${provider}/secret`,
+      { secret }
+    );
+    return response.data;
+  }
+
+  /**
+   * Rotate webhook secret for a provider
+   */
+  async rotateWebhookSecret(provider: 'stripe' | 'paystack', secret: string): Promise<MerchantWebhookSecretSummary> {
+    const response = await axiosInstance.post<MerchantWebhookSecretSummary>(
+      `/merchants/webhooks/${provider}/rotate`,
+      { secret }
+    );
+    return response.data;
   }
 
   /**

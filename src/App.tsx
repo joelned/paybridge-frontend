@@ -5,7 +5,9 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { PerformanceProvider } from './contexts/PerformanceContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ModalContextProvider } from './contexts/ModalContext';
+import { ModalProvider } from './components/modals/ModalProvider';
 import { ToastProvider } from './contexts/ToastContext';
+import { CurrencyProvider } from './contexts/CurrencyContext';
 import { ProtectedRoute } from './components/common/ProtectedRoute';
 import { LoadingSkeleton } from './components/common/LoadingSkeleton';
 import { PerformanceMonitor } from './utils/performance';
@@ -14,6 +16,7 @@ import { PerformanceMonitor } from './utils/performance';
 const LoginPage = React.lazy(() => import('./pages/public/LoginPage').then(m => ({ default: m.LoginPage })));
 const RegisterPage = React.lazy(() => import('./pages/public/RegisterPage').then(m => ({ default: m.RegisterPage })));
 const EmailVerificationPage = React.lazy(() => import('./pages/public/EmailVerificationPage').then(m => ({ default: m.EmailVerificationPage })));
+const ForgotPasswordPage = React.lazy(() => import('./pages/public/ForgotPasswordPage').then(m => ({ default: m.ForgotPasswordPage })));
 const MerchantDashboard = React.lazy(() => import('./pages/merchant/MerchantDashboard').then(m => ({ default: m.MerchantDashboard })));
 const AdminDashboard = React.lazy(() => import('./pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const LandingPage = React.lazy(() => import('./pages/public/LandingPage').then(m => ({ default: m.LandingPage })));
@@ -54,16 +57,20 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
           <ModalContextProvider>
-            <AuthProvider>
-              <Router>
-                <Suspense fallback={<PageLoadingFallback />}>
-                  <AppRoutes />
-                </Suspense>
-              </Router>
-            </AuthProvider>
+            <ModalProvider>
+              <CurrencyProvider>
+                <AuthProvider>
+                  <Router>
+                    <Suspense fallback={<PageLoadingFallback />}>
+                      <AppRoutes />
+                    </Suspense>
+                  </Router>
+                </AuthProvider>
+              </CurrencyProvider>
+            </ModalProvider>
           </ModalContextProvider>
         </ToastProvider>
-        {typeof process !== 'undefined' && process.env.NODE_ENV === 'development' && (
+        {import.meta.env.DEV && (
           <ReactQueryDevtools initialIsOpen={false} />
         )}
       </QueryClientProvider>
@@ -102,6 +109,11 @@ const AppRoutes = React.memo(() => {
           <EmailVerificationPage />
         </Suspense>
       } />
+      <Route path="/forgot-password" element={
+        <Suspense fallback={<PageLoadingFallback />}>
+          <ForgotPasswordPage />
+        </Suspense>
+      } />
 
       {/* Protected routes */}
       <Route
@@ -114,7 +126,7 @@ const AppRoutes = React.memo(() => {
           </ProtectedRoute>
         }
       />
-      
+
       <Route
         path="/admin/*"
         element={
@@ -143,4 +155,4 @@ const AppRoutes = React.memo(() => {
 
 AppRoutes.displayName = 'AppRoutes';
 
-export default App; 
+export default App;

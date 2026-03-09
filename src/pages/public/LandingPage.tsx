@@ -1,5 +1,6 @@
 import React from 'react';
 import { GitMerge, Link2, BarChart3, Shield, Zap, ArrowRight, ServerCog } from 'lucide-react';
+import paybridgeLogo from '../../assets/paybridge_logo_compact.png';
 import { Button } from '../../components/common/Button';
 import { Card } from '../../components/common/Card';
 import { Container } from '../../components/layout/Container';
@@ -10,48 +11,49 @@ interface LandingPageProps {
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate }) => {
+  const currentYear = new Date().getFullYear();
   const features = [
     { 
       icon: GitMerge, 
-      title: 'Payment Orchestration', 
-      description: 'Route payments intelligently across multiple providers with automatic failover'
+      title: 'Unified Payment API', 
+      description: 'Create checkout payments through one endpoint across multiple providers'
     },
     { 
       icon: Link2, 
-      title: 'Single Integration', 
-      description: 'One API to rule them all - connect once, accept payments from everywhere'
+      title: 'Provider Routing', 
+      description: 'Choose a provider explicitly or let PayBridge route using your enabled configurations'
     },
     { 
       icon: BarChart3, 
-      title: 'Unified Analytics', 
-      description: 'Cross-provider insights and reporting in one beautiful dashboard'
+      title: 'Merchant Analytics', 
+      description: 'Track payment volume, status breakdown, and provider-level performance from one API'
     },
     {
       icon: ServerCog,
-      title: 'Merchant Backend First',
-      description: 'Create payments securely from your ecommerce backend using one API'
+      title: 'API Key + Auth Flows',
+      description: 'Use API keys for payment requests and dashboard auth for merchant operations'
     },
     { 
       icon: Shield, 
-      title: 'Idempotency Built-in', 
-      description: 'Prevent duplicate payments with enterprise-grade idempotency handling'
+      title: 'Idempotency Protection', 
+      description: 'Prevent duplicate charges safely with idempotency keys on payment requests'
     },
     { 
       icon: Zap, 
-      title: 'Smart Routing', 
-      description: 'Optimize for success rates, fees, or speed with intelligent routing rules'
+      title: 'Webhooks + Verification', 
+      description: 'Receive provider webhooks with signature verification and deduplication'
     }
   ];
 
 const providers = [
   { 
     name: 'Stripe', 
-    logo: 'https://logo.clearbit.com/stripe.com', 
+    mark: 'S',
     color: '#635BFF' 
   },
   {
     name: 'Paystack', 
-    logo: 'https://static.cdnlogo.com/logos/p/27/paystack.svg', 
+    mark: 'P',
     color: '#00C3F7' 
   },
 ];
@@ -61,13 +63,8 @@ const providers = [
       {/* Navigation */}
       <nav className="bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-gray-200 sticky top-0 z-50">
         <Container className="py-3 sm:py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center shadow-sm">
-              <GitMerge className="text-white" size={24} />
-            </div>
-            <span className="text-xl sm:text-2xl font-bold tracking-tight bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              PayBridge
-            </span>
+          <div className="flex items-center rounded-lg bg-white/90 border border-gray-200 h-12 sm:h-14 px-2.5 sm:px-3 shadow-sm">
+            <img src={paybridgeLogo} alt="PayBridge" className="h-8 sm:h-10 w-auto object-contain" />
           </div>
           <div className="flex gap-2 sm:gap-3">
             <Button variant="ghost" onClick={() => onNavigate('login')}>Login</Button>
@@ -91,30 +88,31 @@ const providers = [
           </span>
         </h1>
         <p className="text-base sm:text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-          PayBridge orchestrates payments across multiple providers, giving you smart routing, unified analytics,
-          and bulletproof idempotency through a single, elegant API.
+          PayBridge connects merchants to multiple payment providers through one simple integration.
         </p>
         <div className="flex gap-3 sm:gap-4 justify-center">
           <Button size="lg" onClick={() => onNavigate('register')} icon={ArrowRight}>
-            Start Free Trial
+            Get Started
           </Button>
-          <Button size="lg" variant="outline">View Documentation</Button>
+          <Button size="lg" variant="outline" onClick={() => onNavigate('docs')}>View Documentation</Button>
         </div>
 
         {/* Provider Logos */}
         <div className="mt-12 sm:mt-16">
-          <p className="text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6">Supports all major payment providers</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-3 sm:gap-3 place-items-center">
+          <p className="text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6">Current provider support</p>
+          <div className="grid grid-cols-2 gap-3 sm:gap-3 place-items-center max-w-md mx-auto">
             {providers.map((provider, idx) => (
               <div
                 key={idx}
                 className="flex items-center gap-3 px-4 sm:px-5 py-2.5 sm:py-3 bg-white/90 backdrop-blur rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all"
               >
-                <img
-                  src={provider.logo}
-                  alt={provider.name}
-                  className="w-7 h-7 sm:w-8 sm:h-8 object-contain"
-                />
+                <span
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs sm:text-sm"
+                  style={{ backgroundColor: provider.color }}
+                  aria-hidden="true"
+                >
+                  {provider.mark}
+                </span>
                 <span className="font-medium text-gray-700 text-sm">{provider.name}</span>
               </div>
             ))}
@@ -129,7 +127,7 @@ const providers = [
         <Container>
           <SectionHeader
             title="Everything You Need to Orchestrate Payments"
-            subtitle="Stop juggling multiple integrations. PayBridge unifies everything into one platform."
+            subtitle="Built for merchants who need reliable payments, smooth operations, and clear insights."
             className="text-center mb-10 sm:mb-12"
           />
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -150,8 +148,8 @@ const providers = [
       <section className="py-16 sm:py-20">
         <Container className="max-w-4xl">
           <Card padding="lg" className="bg-gradient-to-br from-indigo-600 to-purple-600 text-white text-center ring-1 ring-white/10">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">Ready to Orchestrate Payments?</h2>
-          <p className="text-indigo-100 mb-6 sm:mb-8">Join businesses optimizing their payment stack with PayBridge</p>
+          <h2 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">Ready to Integrate PayBridge?</h2>
+          <p className="text-indigo-100 mb-6 sm:mb-8">Create a merchant account, connect your providers, and start creating payments.</p>
           <Button size="lg" variant="secondary" onClick={() => onNavigate('register')}>
             Create Your Account
           </Button>
@@ -163,7 +161,7 @@ const providers = [
       <footer className="border-t border-gray-200 py-8">
         <Container>
           <div className="text-center text-sm text-gray-600">
-            <p>© 2024 PayBridge. Payment orchestration made simple.</p>
+            <p>© {currentYear} PayBridge. Payment orchestration made simple.</p>
           </div>
         </Container>
       </footer>

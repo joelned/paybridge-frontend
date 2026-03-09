@@ -1,26 +1,41 @@
 import React, { useMemo } from 'react';
 import { useIsMobile } from '../../hooks/useMediaQuery';
-import { ChevronRight } from 'lucide-react';
+import { AlertCircle, ChevronRight, Inbox, RefreshCw } from 'lucide-react';
+import { Button } from './Button';
 
-interface Column<T> {
+const handleActionKeyDown = (
+  event: React.KeyboardEvent<HTMLElement>,
+  onActivate?: () => void
+) => {
+  if (!onActivate) return;
+
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    onActivate();
+  }
+};
+
+export interface Column<T extends object> {
   key: keyof T;
   header: string;
-  render?: (value: any, item: T) => React.ReactNode;
+  render?: (value: unknown, item: T) => React.ReactNode;
   mobileLabel?: string; // Custom label for mobile card view
   hideOnMobile?: boolean;
 }
 
-interface ResponsiveDataTableProps<T> {
+interface ResponsiveDataTableProps<T extends object> {
   data: T[];
   columns: Column<T>[];
   onRowClick?: (item: T) => void;
   loading?: boolean;
+  error?: string;
+  onRetry?: () => void;
   emptyMessage?: string;
   keyExtractor?: (item: T) => string;
 }
 
 // Mobile Card View Component
-const MobileCard = React.memo(<T,>({
+const MobileCard = React.memo(<T extends object,>({
   item,
   columns,
   onRowClick
@@ -36,6 +51,7 @@ const MobileCard = React.memo(<T,>({
       className={`bg-white border border-gray-200 rounded-lg p-4 shadow-sm transition-all duration-200 ${onRowClick ? 'cursor-pointer hover:shadow-md active:scale-[0.98] min-h-[44px]' : ''
         }`}
       onClick={() => onRowClick?.(item)}
+      onKeyDown={(event) => handleActionKeyDown(event, onRowClick ? () => onRowClick(item) : undefined)}
       role={onRowClick ? "button" : undefined}
       tabIndex={onRowClick ? 0 : undefined}
     >
@@ -64,7 +80,7 @@ const MobileCard = React.memo(<T,>({
 MobileCard.displayName = 'MobileCard';
 
 // Desktop Table Component
-const DesktopTable = React.memo(<T,>({
+const DesktopTable = React.memo(<T extends object,>({
   data,
   columns,
   onRowClick,
@@ -95,6 +111,9 @@ const DesktopTable = React.memo(<T,>({
             key={keyExtractor ? keyExtractor(item) : index}
             className={`hover:bg-gray-50 ${onRowClick ? 'cursor-pointer' : ''}`}
             onClick={() => onRowClick?.(item)}
+            onKeyDown={(event) => handleActionKeyDown(event, onRowClick ? () => onRowClick(item) : undefined)}
+            role={onRowClick ? 'button' : undefined}
+            tabIndex={onRowClick ? 0 : undefined}
           >
             {columns.map((column) => (
               <td
@@ -116,11 +135,13 @@ const DesktopTable = React.memo(<T,>({
 
 DesktopTable.displayName = 'DesktopTable';
 
-export const ResponsiveDataTable = React.memo(<T,>({
+const ResponsiveDataTableComponent = <T extends object,>({
   data,
   columns,
   onRowClick,
   loading = false,
+  error,
+  onRetry,
   emptyMessage = 'No data available',
   keyExtractor,
 }: ResponsiveDataTableProps<T>) => {
@@ -131,7 +152,7 @@ export const ResponsiveDataTable = React.memo(<T,>({
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow">
+      <div className="ui-card ui-card-default rounded-xl">
         <div className="animate-pulse">
           {isMobile ? (
             // Mobile loading skeleton
@@ -160,10 +181,33 @@ export const ResponsiveDataTable = React.memo(<T,>({
     );
   }
 
+  if (error) {
+    return (
+      <div className="ui-card ui-card-default rounded-xl p-8 text-center">
+        <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+          <AlertCircle size={22} className="text-red-600" />
+        </div>
+        <p className="text-sm font-semibold text-slate-900">Unable to load data</p>
+        <p className="text-sm text-slate-600 mt-1">{error}</p>
+        {onRetry && (
+          <div className="mt-4">
+            <Button variant="outline" size="sm" icon={RefreshCw} onClick={onRetry}>
+              Try Again
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (memoizedData.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow p-8 text-center">
-        <p className="text-gray-500">{emptyMessage}</p>
+      <div className="ui-card ui-card-default rounded-xl p-8 text-center">
+        <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+          <Inbox size={20} className="text-slate-500" />
+        </div>
+        <p className="text-sm font-semibold text-slate-900">No records yet</p>
+        <p className="text-sm text-slate-600 mt-1">{emptyMessage}</p>
       </div>
     );
   }
@@ -175,7 +219,7 @@ export const ResponsiveDataTable = React.memo(<T,>({
           <MobileCard
             key={keyExtractor ? keyExtractor(item) : index}
             item={item}
-            columns={memoizedColumns as any}
+            columns={memoizedColumns as unknown as Column<object>[]}
             onRowClick={onRowClick}
           />
         ))}
@@ -184,15 +228,17 @@ export const ResponsiveDataTable = React.memo(<T,>({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
+    <div className="ui-card ui-card-default rounded-xl overflow-hidden">
       <DesktopTable
         data={memoizedData}
-        columns={memoizedColumns as any}
+        columns={memoizedColumns as unknown as Column<object>[]}
         onRowClick={onRowClick}
         keyExtractor={keyExtractor}
       />
     </div>
   );
-});
+};
 
-ResponsiveDataTable.displayName = 'ResponsiveDataTable';
+const MemoizedResponsiveDataTable = React.memo(ResponsiveDataTableComponent);
+MemoizedResponsiveDataTable.displayName = 'ResponsiveDataTable';
+export const ResponsiveDataTable = MemoizedResponsiveDataTable as typeof ResponsiveDataTableComponent;

@@ -34,7 +34,7 @@ export interface StatCardProps {
   title: string;
   value: string;
   change?: string;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
   trend?: 'up' | 'down';
   subtitle?: string;
 }
@@ -46,7 +46,7 @@ export interface ButtonProps {
   onClick?: () => void;
   className?: string;
   disabled?: boolean;
-  icon?: React.ComponentType<any>;
+  icon?: React.ComponentType<{ size?: number; className?: string }>;
   type?: 'button' | 'submit' | 'reset';
 }
 
@@ -58,7 +58,7 @@ export interface InputProps {
   placeholder?: string;
   error?: string;
   required?: boolean;
-  icon?: React.ComponentType<any>;
+  icon?: React.ComponentType<{ size?: number; className?: string }>;
 }
 
 // Utility types

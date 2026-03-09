@@ -19,4 +19,29 @@ export default defineConfig({
       '@/types': path.resolve(__dirname, './src/types'),
     },
   },
+  build: {
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+
+          if (id.includes('react-dom') || id.includes('react-router') || id.includes('react/')) {
+            return 'vendor-react';
+          }
+          if (id.includes('@tanstack/react-query')) {
+            return 'vendor-query';
+          }
+          if (id.includes('recharts')) {
+            return 'vendor-charts';
+          }
+          if (id.includes('lucide-react')) {
+            return 'vendor-icons';
+          }
+
+          return 'vendor';
+        },
+      },
+    },
+  },
 })

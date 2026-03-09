@@ -20,8 +20,6 @@ interface RegisterResponse {
 }
 
 class AuthService {
-  private readonly USER_KEY = 'user';
-
   private mapAuthPayloadToUser(data: Partial<LoginResponse>): User {
     if (!data.email) {
       throw new ApiError('Invalid auth response: missing email');
@@ -99,7 +97,6 @@ class AuthService {
     const response = await axiosInstance.post<LoginResponse>('/auth/login', loginRequest);
     const user = this.mapAuthPayloadToUser(response.data);
 
-    this.storeUserData(user);
     return { user };
   }
 
@@ -108,9 +105,7 @@ class AuthService {
    */
   async getMe(): Promise<User> {
     const response = await axiosInstance.get<Partial<LoginResponse>>('/auth/me');
-    const user = this.mapAuthPayloadToUser(response.data);
-    this.storeUserData(user);
-    return user;
+    return this.mapAuthPayloadToUser(response.data);
   }
 
   /**
@@ -126,24 +121,12 @@ class AuthService {
   }
 
   /**
-   * Store user data (no token needed with HTTP-only cookies)
-   */
-  storeUserData(user: User): void {
-    try {
-      localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-    } catch (error) {
-      console.error('Failed to store user data:', error);
-    }
-  }
-
-  /**
-   * Get current user from backend session, fallback to cache if valid session cannot be verified.
+   * Get current user from backend session.
    */
   async getCurrentUser(): Promise<User | null> {
     try {
       return await this.getMe();
     } catch {
-      this.clearStoredData();
       return null;
     }
   }
@@ -155,26 +138,9 @@ class AuthService {
     return (await this.getCurrentUser()) !== null;
   }
 
-  /**
-   * Get cached user data from localStorage (for quick access)
-   */
-  getCachedUser(): User | null {
-    const userJson = localStorage.getItem(this.USER_KEY);
-    if (!userJson) return null;
-
-    try {
-      return JSON.parse(userJson) as User;
-    } catch {
-      this.clearStoredData(); // Clear invalid data
-      return null;
-    }
-  }
-
-  /**
-   * Clear stored authentication data
-   */
+  /** Clear client-side auth state (cookie lives on server). */
   clearStoredData(): void {
-    localStorage.removeItem(this.USER_KEY);
+    // No client-side auth data is persisted.
   }
 
   /**

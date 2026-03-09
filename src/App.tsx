@@ -20,6 +20,7 @@ const ForgotPasswordPage = React.lazy(() => import('./pages/public/ForgotPasswor
 const MerchantDashboard = React.lazy(() => import('./pages/merchant/MerchantDashboard').then(m => ({ default: m.MerchantDashboard })));
 const AdminDashboard = React.lazy(() => import('./pages/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const LandingPage = React.lazy(() => import('./pages/public/LandingPage').then(m => ({ default: m.LandingPage })));
+const ApiDocsPage = React.lazy(() => import('./pages/docs/ApiDocsPage').then(m => ({ default: m.ApiDocsPage })));
 
 // Optimized query client
 const queryClient = new QueryClient({
@@ -27,8 +28,12 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 5 * 60 * 1000,
       gcTime: 10 * 60 * 1000,
-      retry: (failureCount, error: any) => {
-        if (error?.status === 404) return false;
+      retry: (failureCount, error: unknown) => {
+        const status =
+          typeof error === 'object' && error !== null && 'status' in error
+            ? Number((error as { status?: unknown }).status)
+            : undefined;
+        if (status === 404) return false;
         return failureCount < 3;
       },
       refetchOnWindowFocus: false,
@@ -112,6 +117,12 @@ const AppRoutes = React.memo(() => {
       <Route path="/forgot-password" element={
         <Suspense fallback={<PageLoadingFallback />}>
           <ForgotPasswordPage />
+        </Suspense>
+      } />
+
+      <Route path="/docs" element={
+        <Suspense fallback={<PageLoadingFallback />}>
+          <ApiDocsPage />
         </Suspense>
       } />
 

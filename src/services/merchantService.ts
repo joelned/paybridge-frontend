@@ -76,7 +76,7 @@ export interface MerchantSettings {
   };
 }
 
-export interface UpdateMerchantSettingsRequest extends Partial<MerchantSettings> {}
+export type UpdateMerchantSettingsRequest = Partial<MerchantSettings>;
 
 export interface ChangePasswordRequest {
   currentPassword: string;

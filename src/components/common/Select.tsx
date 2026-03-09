@@ -2,6 +2,7 @@
 import React from 'react';
 import type { SelectHTMLAttributes } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { cn } from '../../utils/cn';
 
 export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'onChange'> {
   label?: string;
@@ -26,9 +27,9 @@ export const Select: React.FC<SelectProps> = ({
   const errorId = error && inputId ? `${inputId}-error` : undefined;
   
   return (
-    <div className="mb-4">
+    <div className="ui-field">
       {label && (
-        <label className="block text-sm font-semibold text-gray-800 mb-2.5" htmlFor={inputId}>
+        <label className="ui-field-label" htmlFor={inputId}>
           {label} {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
@@ -40,18 +41,12 @@ export const Select: React.FC<SelectProps> = ({
           id={inputId}
           aria-invalid={!!error || undefined}
           aria-describedby={[hintId, errorId].filter(Boolean).join(' ') || undefined}
-          className={`
-            w-full px-4 py-3 pr-10
-            border rounded-xl appearance-none
-            focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 
-            transition-all duration-200
-            ${error 
-              ? 'border-red-300 bg-red-50/50 focus:border-red-500 focus:ring-red-500/20' 
-              : 'border-gray-300 bg-white hover:border-gray-400'
-            }
-            ${disabled ? 'bg-gray-50 cursor-not-allowed opacity-60 text-gray-500' : ''}
-            ${className}
-          `}
+          className={cn(
+            'ui-control w-full px-4 py-3 pr-10 appearance-none',
+            error && 'ui-control-error',
+            disabled && 'ui-control-disabled opacity-60',
+            className
+          )}
         >
           {options.map((option) => (
             <option key={option.value} value={option.value}>
@@ -65,10 +60,10 @@ export const Select: React.FC<SelectProps> = ({
         />
       </div>
       {hint && !error && (
-        <p id={hintId} className="mt-2 text-sm text-gray-600">{hint}</p>
+        <p id={hintId} className="ui-field-hint">{hint}</p>
       )}
       {error && (
-        <p id={errorId} role="alert" className="mt-2 text-sm text-red-600 font-medium">{error}</p>
+        <p id={errorId} role="alert" className="ui-field-error">{error}</p>
       )}
     </div>
   );

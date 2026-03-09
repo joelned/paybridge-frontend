@@ -34,7 +34,7 @@ export function normalizeUserType(userType: unknown): UserType {
     const roleString = String(userType).trim().toUpperCase();
     
     // Handle various backend formats
-    let cleaned = roleString
+    const cleaned = roleString
       .replace(/^\[/, '')           // Remove opening bracket
       .replace(/\]$/, '')           // Remove closing bracket
       .replace(/^ROLE_/, '')        // Remove ROLE_ prefix

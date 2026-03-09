@@ -1,11 +1,11 @@
 // src/components/layout/Sidebar.tsx
 import React from 'react';
-import { GitMerge, LogOut, Menu } from 'lucide-react';
+import { LogOut, Menu } from 'lucide-react';
 
 interface MenuItem {
   id: string;
   label: string;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
 }
 
 interface SidebarProps {
@@ -31,10 +31,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside className={`${sidebarOpen ? 'w-64' : 'w-18'} bg-white/95 backdrop-blur-xl border-r border-slate-200/60 transition-all duration-300 ease-in-out flex flex-col h-full shadow-xl shadow-slate-900/5`}>
       <div className="p-6 border-b border-slate-200/60 flex items-center justify-between min-h-[88px]">
         {sidebarOpen && (
-          <div className="flex items-center gap-3 animate-fadeIn">
-            <div className="w-11 h-11 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/25">
-              <GitMerge className="text-white" size={22} strokeWidth={2.5} />
-            </div>
+          <div className="animate-fade-in">
             <span className="font-bold text-xl text-slate-900 tracking-tight">PayBridge</span>
           </div>
         )}
@@ -64,7 +61,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className={`${activeTab === item.id ? 'text-blue-600' : 'text-slate-500 group-hover:text-slate-700'} transition-colors flex-shrink-0`} 
             />
             {sidebarOpen && (
-              <span className="truncate animate-fadeIn">{item.label}</span>
+              <span className="truncate animate-fade-in">{item.label}</span>
             )}
             {recentTabs.includes(item.id) && item.id !== activeTab && (
               <div className="w-1.5 h-1.5 bg-blue-400 rounded-full opacity-60"></div>
@@ -103,7 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           title={!sidebarOpen ? 'Logout' : undefined}
         >
           <LogOut size={18} className="text-red-500 group-hover:text-red-600 transition-colors flex-shrink-0" />
-          {sidebarOpen && <span className="animate-fadeIn">Logout</span>}
+          {sidebarOpen && <span className="animate-fade-in">Logout</span>}
         </button>
       </div>
     </aside>

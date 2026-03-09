@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CheckCircle2, PlugZap, RefreshCw, ShieldAlert } from 'lucide-react';
 import { Card } from '../../../components/common/Card';
 import { Button } from '../../../components/common/Button';
 import { Input } from '../../../components/common/Input';
 import { Select } from '../../../components/common/Select';
+import { ResponsiveDataTable, type Column } from '../../../components/common/ResponsiveDataTable';
 import { InlineAlert } from '../../../components/feedback/InlineAlert';
 import { providerService, type SupportedProviderName } from '../../../services/providerService';
 import { getErrorMessage } from '../../../utils/errorHandler';
@@ -43,6 +44,7 @@ export const ProvidersTab: React.FC = () => {
   });
 
   const canSubmit = useMemo(() => secretKey.trim().length > 0, [secretKey]);
+  const providerRows = useMemo(() => configuredProviders, [configuredProviders]);
 
   const handleConfigure = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +73,7 @@ export const ProvidersTab: React.FC = () => {
     }
   };
 
-  const handleRetest = async (configId: number) => {
+  const handleRetest = useCallback(async (configId: number) => {
     setError('');
     setSuccessMessage('');
     setIsTestingConfigId(configId);
@@ -85,13 +87,72 @@ export const ProvidersTab: React.FC = () => {
     } finally {
       setIsTestingConfigId(null);
     }
-  };
+  }, [refetch]);
+
+  const providerColumns = useMemo<Column<ConfiguredProvider>[]>(() => [
+    {
+      key: 'providerName',
+      header: 'Provider',
+      mobileLabel: 'Provider',
+      render: (_value, item) => (
+        <div>
+          <p className="font-semibold text-slate-900">{item.providerName}</p>
+          <p className="text-xs text-slate-600 mt-0.5">
+            Code: {item.providerCode} · ID: {item.configId}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: 'enabled',
+      header: 'Status',
+      mobileLabel: 'Status',
+      render: (_value, item) => (
+        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${item.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+          {item.enabled ? 'Active' : 'Inactive'}
+        </span>
+      ),
+    },
+    {
+      key: 'createdAt',
+      header: 'Connected',
+      mobileLabel: 'Connected',
+      render: (_value, item) => (
+        <span className="text-sm text-slate-700">{item.createdAt ? new Date(item.createdAt).toLocaleString() : 'N/A'}</span>
+      ),
+    },
+    {
+      key: 'lastVerifiedAt',
+      header: 'Last Check',
+      mobileLabel: 'Last Check',
+      render: (_value, item) => (
+        <span className="text-sm text-slate-700">{item.lastVerifiedAt ? new Date(item.lastVerifiedAt).toLocaleString() : 'Never'}</span>
+      ),
+    },
+    {
+      key: 'configId',
+      header: 'Action',
+      mobileLabel: 'Action',
+      render: (_value, item) => (
+        <Button
+          variant="outline"
+          size="sm"
+          icon={RefreshCw}
+          onClick={() => handleRetest(item.configId)}
+          disabled={isTestingConfigId === item.configId}
+          loading={isTestingConfigId === item.configId}
+        >
+          Check Again
+        </Button>
+      ),
+    },
+  ], [handleRetest, isTestingConfigId]);
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Connect Payment Methods</h1>
-        <p className="text-sm text-slate-600 mt-1">
+        <h1 className="ui-page-title">Connect Payment Methods</h1>
+        <p className="ui-page-subtitle mt-1">
           Add your Stripe or Paystack account so you can receive customer payments.
         </p>
       </div>
@@ -106,18 +167,12 @@ export const ProvidersTab: React.FC = () => {
         </InlineAlert>
       )}
 
-      {loadError && (
-        <InlineAlert
-          variant="error"
-          icon={ShieldAlert}
-          className="bg-red-50 border-red-300 text-red-800"
-        >
-          {getErrorMessage(loadError)}
-        </InlineAlert>
-      )}
-
       {successMessage && (
-        <InlineAlert variant="success" icon={CheckCircle2}>
+        <InlineAlert
+          variant="success"
+          icon={CheckCircle2}
+          className="bg-emerald-50 border-emerald-300 text-emerald-800"
+        >
           {successMessage}
         </InlineAlert>
       )}
@@ -162,46 +217,16 @@ export const ProvidersTab: React.FC = () => {
       </Card>
 
       <Card className="p-6">
-        <h2 className="text-lg font-semibold text-slate-900 mb-4">Connected Accounts</h2>
-
-        {isLoading ? (
-          <p className="text-sm text-slate-600">Loading connected providers...</p>
-        ) : configuredProviders.length === 0 ? (
-          <p className="text-sm text-slate-600">No providers configured yet.</p>
-        ) : (
-          <div className="space-y-3">
-            {configuredProviders.map((config) => (
-              <div key={config.configId} className="border border-slate-200 rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-slate-900">{config.providerName}</p>
-                  <p className="text-xs text-slate-600">{config.enabled ? 'Active' : 'Inactive'}</p>
-                  <p className="text-xs text-slate-500">Connected: {config.createdAt ? new Date(config.createdAt).toLocaleString() : 'N/A'}</p>
-                  {config.lastVerifiedAt && (
-                    <p className="text-xs text-slate-600 mt-1">
-                      Last connection check: {new Date(config.lastVerifiedAt).toLocaleString()}
-                    </p>
-                  )}
-                  <details className="mt-2">
-                    <summary className="text-xs text-slate-500 cursor-pointer">Technical details</summary>
-                    <p className="text-xs text-slate-500 mt-1">Reference ID: {config.configId}</p>
-                    <p className="text-xs text-slate-500 mt-1">Code: {config.providerCode}</p>
-                  </details>
-                </div>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  icon={RefreshCw}
-                  onClick={() => handleRetest(config.configId)}
-                  disabled={isTestingConfigId === config.configId}
-                  loading={isTestingConfigId === config.configId}
-                >
-                  Check Again
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
+        <h2 className="ui-section-title mb-4">Connected Accounts</h2>
+        <ResponsiveDataTable
+          data={providerRows}
+          columns={providerColumns}
+          loading={isLoading}
+          error={loadError ? getErrorMessage(loadError) : undefined}
+          onRetry={() => refetch()}
+          emptyMessage="No providers configured yet."
+          keyExtractor={(item) => String(item.configId)}
+        />
       </Card>
     </div>
   );

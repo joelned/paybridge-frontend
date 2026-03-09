@@ -5,6 +5,7 @@ import { Sidebar } from '../../components/layout/Sidebar';
 import { Header } from '../../components/layout/Header';
 import { BreadcrumbNavigation } from '../../components/common/BreadcrumbNavigation';
 import { ErrorBoundary } from '../../components/common/ErrorBoundary';
+import { Button } from '../../components/common/Button';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { useTabHistory } from '../../hooks/useTabHistory';
 import { LoadingSkeleton, SkipLink, LiveRegion } from '../../components/common';
@@ -20,7 +21,7 @@ const SettingsTab = lazy(() => import('./tabs/SettingsTab'));
 interface MenuItem {
   id: string;
   label: string;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
 }
 
 interface Props {
@@ -58,13 +59,13 @@ const ErrorFallback = (error: Error) => (
         <h3 className="text-xl font-bold text-slate-900">Something went wrong</h3>
         <p className="text-sm text-slate-600 leading-relaxed">{error?.message || 'An error occurred'}</p>
       </div>
-      <button
+      <Button
         onClick={() => window.location.reload()}
-        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+        size="md"
+        icon={RefreshCw}
       >
-        <RefreshCw size={16} />
         Reload Dashboard
-      </button>
+      </Button>
     </div>
   </div>
 );

@@ -1,5 +1,6 @@
 import React from 'react';
 import { BaseModal } from './BaseModal';
+import { Button } from '../common/Button';
 
 interface FormModalProps {
     isOpen: boolean;
@@ -38,24 +39,24 @@ export const FormModal: React.FC<FormModalProps> = ({
                     {children}
                 </div>
                 <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-200 bg-slate-50 rounded-b-2xl">
-                    <button
+                    <Button
                         type="button"
                         onClick={onClose}
-                        className="px-4 py-2 text-sm font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-200 rounded-lg transition-colors"
+                        variant="ghost"
+                        size="sm"
                         disabled={loading}
                     >
                         {cancelText}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         type="submit"
                         disabled={loading || disabled}
-                        className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        variant="primary"
+                        size="sm"
+                        loading={loading}
                     >
-                        {loading && (
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        )}
                         {submitText}
-                    </button>
+                    </Button>
                 </div>
             </form>
         </BaseModal>

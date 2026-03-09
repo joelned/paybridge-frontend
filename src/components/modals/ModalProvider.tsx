@@ -20,8 +20,8 @@ export const ModalProvider: React.FC<Props> = ({ children }) => {
             <ExportDataModal
               isOpen={true}
               onClose={closeModal}
-              onExport={(config) => { /* TODO: Implement Export */ }}
-              {...(activeModal.data as any)}
+              onExport={() => { /* TODO: Implement Export */ }}
+              loading={false}
             />
           )}
         </>

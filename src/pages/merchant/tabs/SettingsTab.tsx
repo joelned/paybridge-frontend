@@ -40,8 +40,8 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ userData }) => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Account</h1>
-        <p className="text-sm text-slate-600 mt-1">
+        <h1 className="ui-page-title">Account</h1>
+        <p className="ui-page-subtitle mt-1">
           Manage merchant account details, integration access, and security guidance.
         </p>
       </div>
@@ -58,7 +58,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ userData }) => {
         ) : (
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100">
-              <h2 className="text-lg font-semibold text-slate-900">Business Profile</h2>
+              <h2 className="ui-section-title">Business Profile</h2>
               <Badge
                 variant={statusVariant(profile?.status)}
                 className={profile?.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800' : ''}

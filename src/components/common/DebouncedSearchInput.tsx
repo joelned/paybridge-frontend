@@ -31,7 +31,7 @@ export const DebouncedSearchInput = React.memo(({
       setIsSearching(false);
     }
     onSearch(debouncedValue);
-  }, [debouncedValue, onSearch]);
+  }, [debouncedValue, inputValue, onSearch]);
 
   // Show searching indicator while typing
   useEffect(() => {

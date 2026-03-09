@@ -1,5 +1,5 @@
 // src/contexts/ThemeContext.tsx
-import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -51,18 +51,18 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => mediaQuery.removeEventListener('change', handler);
   }, [theme]);
 
-  const setTheme = (newTheme: Theme) => {
+  const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme);
     localStorage.setItem('theme', newTheme);
-  };
+  }, []);
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     setTheme(effectiveTheme === 'light' ? 'dark' : 'light');
-  };
+  }, [effectiveTheme, setTheme]);
 
   const value = useMemo(
     () => ({ theme, effectiveTheme, setTheme, toggleTheme }),
-    [theme, effectiveTheme]
+    [theme, effectiveTheme, setTheme, toggleTheme]
   );
 
   return (

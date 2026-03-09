@@ -57,7 +57,7 @@ export const UserMenuDropdown: React.FC<UserMenuDropdownProps> = ({ user, onLogo
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-72 animate-scaleUp origin-top-right z-50">
+        <div className="absolute right-0 mt-3 w-72 animate-scale-in origin-top-right z-50">
           <Card className="shadow-2xl border-slate-200 overflow-hidden">
             {/* User Info Header */}
             <div className="px-5 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-slate-200">

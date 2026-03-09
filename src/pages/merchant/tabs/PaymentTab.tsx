@@ -104,7 +104,7 @@ export const PaymentsTab: React.FC = () => {
     onSuccess: (data) => {
       setRevealedKey({ mode: data.mode, label: data.label, key: data.key });
       queryClient.invalidateQueries({ queryKey: ['merchant-api-keys'] });
-      showToast(`${data.label} generated. Copy it now.`, 'success');
+      showToast(`${data.label} generated. Next: copy it and store it in your backend secrets manager.`, 'success');
     },
     onError: (mutationError) => {
       showToast(getErrorMessage(mutationError), 'error');
@@ -115,7 +115,7 @@ export const PaymentsTab: React.FC = () => {
     mutationFn: (keyId: 'test' | 'live') => merchantService.revokeApiKey(keyId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['merchant-api-keys'] });
-      showToast('API key revoked successfully', 'success');
+      showToast('API key revoked. Next: generate a replacement key before processing new payments.', 'success');
       setRevealedKey(null);
     },
     onError: (mutationError) => {
@@ -133,7 +133,10 @@ export const PaymentsTab: React.FC = () => {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['merchant-webhook-secrets'] });
       setWebhookSecretInput((previous) => ({ ...previous, [variables.provider]: '' }));
-      showToast(`Webhook secret ${variables.rotate ? 'rotated' : 'saved'} for ${variables.provider}`, 'success');
+      showToast(
+        `Webhook secret ${variables.rotate ? 'rotated' : 'saved'} for ${variables.provider}. Next: confirm the same secret in your provider dashboard.`,
+        'success'
+      );
     },
     onError: (mutationError) => {
       showToast(getErrorMessage(mutationError), 'error');
@@ -143,37 +146,37 @@ export const PaymentsTab: React.FC = () => {
   const copyText = async (value: string) => {
     try {
       await navigator.clipboard.writeText(value);
-      showToast('Copied to clipboard', 'success');
+      showToast('Copied. Next: share or store it in your backend config.', 'success');
     } catch {
-      showToast('Could not copy text', 'error');
+      showToast('Copy failed. Copy manually from the field.', 'error');
     }
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Payment API Integration</h1>
-        <p className="text-sm text-slate-600 mt-1">
-          Customer payments should be created from your ecommerce backend, not from this dashboard.
+        <h1 className="ui-page-title">Payment API Integration</h1>
+        <p className="ui-page-subtitle mt-1">
+          Configure keys and webhooks here. Next: your developer completes backend integration.
         </p>
       </div>
 
       {error && (
         <InlineAlert variant="error" icon={AlertTriangle} className="bg-red-50 border-red-300 text-red-800">
-          {getErrorMessage(error)}
+          Unable to load API keys. Try refreshing this page.
         </InlineAlert>
       )}
 
       {webhookSecretsError && (
         <InlineAlert variant="error" icon={AlertTriangle} className="bg-red-50 border-red-300 text-red-800">
-          {getErrorMessage(webhookSecretsError)}
+          Unable to load webhook secrets. Try refreshing this page.
         </InlineAlert>
       )}
 
       {revealedKey && (
         <InlineAlert variant="warning" icon={AlertTriangle}>
           <div className="space-y-3">
-            <p className="font-semibold">Save this key now. For security, Paybridge shows it only once.</p>
+            <p className="font-semibold">Key ready. Next: copy it now and save it in your backend secrets manager.</p>
             <div className="rounded-lg bg-slate-900 text-slate-100 p-3 text-xs break-all">{revealedKey.key}</div>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" icon={Copy} onClick={() => copyText(revealedKey.key)}>
@@ -189,13 +192,13 @@ export const PaymentsTab: React.FC = () => {
 
       <Card className="p-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-slate-900">Share With Your Developer</h2>
+          <h2 className="ui-section-title">Share With Your Developer</h2>
           <Button variant="outline" size="sm" icon={Copy} onClick={() => copyText(DEVELOPER_HANDOFF)}>
             Copy
           </Button>
         </div>
         <p className="text-sm text-slate-600 mb-3">
-          If you are not technical, copy this message and send it to your developer.
+          Use this message to brief your developer clearly.
         </p>
         <pre className="text-xs bg-slate-900 text-slate-100 rounded-lg p-4 overflow-x-auto">{DEVELOPER_HANDOFF}</pre>
       </Card>
@@ -203,10 +206,10 @@ export const PaymentsTab: React.FC = () => {
       <Card className="p-6">
         <div className="flex items-center gap-2 mb-4">
           <KeyRound size={18} className="text-blue-600" />
-          <h2 className="text-lg font-semibold text-slate-900">API Keys</h2>
+          <h2 className="ui-section-title">API Keys</h2>
         </div>
         <p className="text-sm text-slate-600 mb-5">
-          Use these keys only on your server. Never expose them in browser or mobile app code.
+          Keep keys on your server only. Never expose them in browser or mobile app code.
         </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -260,7 +263,7 @@ export const PaymentsTab: React.FC = () => {
           })}
         </div>
 
-        {isLoading && <p className="text-sm text-slate-600 mt-4">Loading API keys...</p>}
+        {isLoading && <p className="text-sm text-slate-600 mt-4">Loading key status...</p>}
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -271,7 +274,7 @@ export const PaymentsTab: React.FC = () => {
             </div>
             <div>
               <h2 className="font-semibold text-slate-900">Server-to-Server</h2>
-              <p className="text-sm text-slate-600 mt-1">Call Paybridge from your backend after order validation.</p>
+              <p className="ui-page-subtitle mt-1">Call Paybridge from your backend after order validation.</p>
             </div>
           </div>
         </Card>
@@ -283,7 +286,7 @@ export const PaymentsTab: React.FC = () => {
             </div>
             <div>
               <h2 className="font-semibold text-slate-900">Keep Keys Private</h2>
-              <p className="text-sm text-slate-600 mt-1">Never create payments directly from browser/client-side code.</p>
+              <p className="ui-page-subtitle mt-1">Never create payments directly from browser/client-side code.</p>
             </div>
           </div>
         </Card>
@@ -295,7 +298,7 @@ export const PaymentsTab: React.FC = () => {
             </div>
             <div>
               <h2 className="font-semibold text-slate-900">Use Idempotency</h2>
-              <p className="text-sm text-slate-600 mt-1">Send a unique <code>Idempotency-Key</code> per payment attempt.</p>
+              <p className="ui-page-subtitle mt-1">Send a unique <code>Idempotency-Key</code> per payment attempt.</p>
             </div>
           </div>
         </Card>
@@ -305,7 +308,7 @@ export const PaymentsTab: React.FC = () => {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Webhook size={18} className="text-violet-600" />
-            <h2 className="text-lg font-semibold text-slate-900">Webhook URLs</h2>
+            <h2 className="ui-section-title">Webhook URLs</h2>
           </div>
         </div>
         <p className="text-sm text-slate-600 mb-4">
@@ -346,10 +349,10 @@ export const PaymentsTab: React.FC = () => {
       <Card className="p-6">
         <div className="flex items-center gap-2 mb-2">
           <ShieldCheck size={18} className="text-emerald-600" />
-          <h2 className="text-lg font-semibold text-slate-900">Webhook Secrets</h2>
+          <h2 className="ui-section-title">Webhook Secrets</h2>
         </div>
         <p className="text-sm text-slate-600 mb-4">
-          Save each provider webhook secret so PayBridge can verify webhook signatures for your account.
+          Save provider webhook secrets so PayBridge can verify incoming events for your account.
         </p>
         <div className="space-y-4">
           {(['stripe', 'paystack'] as const).map((provider) => {
@@ -431,7 +434,7 @@ export const PaymentsTab: React.FC = () => {
 
       <Card className="p-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-slate-900">HTTP Request Template</h2>
+          <h2 className="ui-section-title">HTTP Request Template</h2>
           <Button variant="outline" size="sm" icon={Copy} onClick={() => copyText(SAMPLE_REQUEST)}>
             Copy
           </Button>
@@ -441,7 +444,7 @@ export const PaymentsTab: React.FC = () => {
 
       <Card className="p-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-slate-900">Node.js Example</h2>
+          <h2 className="ui-section-title">Node.js Example</h2>
           <Button variant="outline" size="sm" icon={Copy} onClick={() => copyText(NODE_SAMPLE)}>
             Copy
           </Button>

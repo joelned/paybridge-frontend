@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { env } from '../../config/env';
-import { handleApiError } from '../../utils/errorHandler';
+import { extractErrorMessage, extractErrors, extractTimestamp, handleApiError } from '../../utils/errorHandler';
 import type { ApiResponse } from '../../types/api';
+import { ApiError } from '../../types/api';
 
 let onAuthError: (() => void) | null = null;
 let isLoggingOut = false;
@@ -37,12 +38,12 @@ axiosInstance.interceptors.request.use(
     if (csrfToken) {
       config.headers['X-CSRF-Token'] = csrfToken;
     }
-    
+
     // Ensure signal is properly handled
     if (config.signal?.aborted) {
       throw new Error('Request was aborted');
     }
-    
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -51,11 +52,23 @@ axiosInstance.interceptors.request.use(
 // Response interceptor - handle errors and transform responses
 axiosInstance.interceptors.response.use(
   (response) => {
-    // Transform successful responses to extract data
-    const apiResponse = response.data as ApiResponse;
+    const apiResponse = response.data as ApiResponse | undefined;
+
     if (apiResponse && typeof apiResponse === 'object' && 'success' in apiResponse) {
+      if (apiResponse.success === false) {
+        throw new ApiError(
+          extractErrorMessage(apiResponse),
+          extractErrors(apiResponse),
+          extractTimestamp(apiResponse),
+          response.status,
+          apiResponse
+        );
+      }
+
+      // Unwrap standardized success payloads from backend.
       response.data = apiResponse.data;
     }
+
     return response;
   },
   (error) => {
@@ -66,7 +79,7 @@ axiosInstance.interceptors.response.use(
         onAuthError?.();
       }, 100);
     }
-    
+
     // Transform error to ApiError
     const apiError = handleApiError(error);
     return Promise.reject(apiError);

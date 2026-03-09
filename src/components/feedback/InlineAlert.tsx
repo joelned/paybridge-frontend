@@ -27,7 +27,7 @@ export const InlineAlert: React.FC<InlineAlertProps> = ({ variant = 'info', icon
   const role = variant === 'success' || variant === 'info' ? 'status' : 'alert';
   const ariaLive = variant === 'success' || variant === 'info' ? 'polite' : 'assertive';
   return (
-    <div {...props} role={role} aria-live={ariaLive} className={`mb-4 p-4 rounded-xl flex items-start gap-3 text-sm font-medium animate-fadeIn ${variantClasses[variant]} ${className}`}>
+    <div {...props} role={role} aria-live={ariaLive} className={`p-4 rounded-xl flex items-start gap-3 text-sm font-medium animate-fade-in ${variantClasses[variant]} ${className}`}>
       {Icon && (
         <Icon size={20} className={`flex-shrink-0 mt-0.5 ${iconClasses[variant]}`} />
       )}
@@ -35,5 +35,3 @@ export const InlineAlert: React.FC<InlineAlertProps> = ({ variant = 'info', icon
     </div>
   );
 };
-
-

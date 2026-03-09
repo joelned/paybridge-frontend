@@ -5,14 +5,14 @@ import type { ModalDataMap } from '../types/modals';
 export type ModalId = keyof ModalDataMap;
 
 export interface ModalCallbacks {
-  onSuccess?: (result?: any) => void;
-  onError?: (error: any) => void;
+  onSuccess?: (result?: unknown) => void;
+  onError?: (error: unknown) => void;
   onClose?: () => void;
 }
 
-interface ModalState<T extends ModalId = ModalId> {
-  id: T;
-  data?: ModalDataMap[T];
+interface ModalState {
+  id: ModalId;
+  data?: ModalDataMap[ModalId];
   callbacks?: ModalCallbacks;
   isOpen: boolean;
 }
@@ -46,16 +46,25 @@ interface ModalContextProviderProps {
 export const ModalContextProvider = React.memo(({ children }: ModalContextProviderProps) => {
   const [activeModal, setActiveModal] = useState<ModalState | null>(null);
 
-  const openModal = useCallback((id: ModalId, data?: any, callbacks?: ModalCallbacks) => {
-    setActiveModal({ id, data, callbacks, isOpen: true });
+  const openModal = useCallback(<T extends ModalId>(id: T, data?: ModalDataMap[T], callbacks?: ModalCallbacks) => {
+    setActiveModal({
+      id,
+      data: data as ModalDataMap[ModalId] | undefined,
+      callbacks,
+      isOpen: true
+    });
   }, []);
 
   const closeModal = useCallback(() => {
     setActiveModal(null);
   }, []);
 
-  const updateModalData = useCallback((data: any) => {
-    setActiveModal(prev => prev ? { ...prev, data } : null);
+  const updateModalData = useCallback(<T extends ModalId>(data: ModalDataMap[T]) => {
+    setActiveModal((prev) =>
+      prev
+        ? { ...prev, data: data as ModalDataMap[ModalId] }
+        : null
+    );
   }, []);
 
   const isModalOpen = useCallback((id: ModalId) => {

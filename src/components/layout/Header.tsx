@@ -1,10 +1,8 @@
 // src/components/layout/Header.tsx - Refactored for consistent design system
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, ChevronDown, LogOut } from 'lucide-react';
-import { Button } from '../common/Button';
+import { ChevronDown, LogOut } from 'lucide-react';
 import { CurrencyHeaderSelector } from '../common/CurrencyHeaderSelector';
 import { useCurrency } from '../../contexts/CurrencyContext';
-import { NotificationDropdown, type Notification } from '../common/NotificationDropdown';
 
 interface HeaderProps {
   activeTab: string;
@@ -21,56 +19,22 @@ export const Header: React.FC<HeaderProps> = ({
   userData,
   onLogout
 }) => {
-  const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const notificationRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const { selectedCurrency, setCurrency } = useCurrency();
-
-  // Mock notifications state - replace with real data/context later
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      title: 'Payment Received',
-      message: 'New payment of $249.00 from john@example.com',
-      type: 'success',
-      time: '5 min ago',
-      read: false
-    },
-    {
-      id: '2',
-      title: 'Provider Connection',
-      message: 'Stripe connection verified successfully',
-      type: 'success',
-      time: '1 hour ago',
-      read: false
-    },
-    {
-      id: '3',
-      title: 'Integration Updated',
-      message: 'A provider configuration was updated successfully',
-      type: 'info',
-      time: '2 hours ago',
-      read: true
-    }
-  ]);
 
   const currentPage = menuItems.find(item => item.id === activeTab);
   const displayName = userData?.businessName || userEmail.split('@')[0];
   const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  const unreadCount = notifications.filter(n => !n.read).length;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
-        setShowNotifications(false);
-      }
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setShowUserMenu(false);
       }
     };
 
-    if (showNotifications || showUserMenu) {
+    if (showUserMenu) {
       document.addEventListener('mousedown', handleClickOutside);
       document.body.classList.add('modal-open');
     } else {
@@ -81,21 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
       document.removeEventListener('mousedown', handleClickOutside);
       document.body.classList.remove('modal-open');
     };
-  }, [showNotifications, showUserMenu]);
-
-  const handleMarkAsRead = (id: string) => {
-    setNotifications(prev =>
-      prev.map(notif => notif.id === id ? { ...notif, read: true } : notif)
-    );
-  };
-
-  const handleMarkAllAsRead = () => {
-    setNotifications(prev => prev.map(notif => ({ ...notif, read: true })));
-  };
-
-  const handleDeleteNotification = (id: string) => {
-    setNotifications(prev => prev.filter(notif => notif.id !== id));
-  };
+  }, [showUserMenu]);
 
   return (
     <header className="bg-white/95 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 z-40 shadow-sm">
@@ -118,28 +68,6 @@ export const Header: React.FC<HeaderProps> = ({
               onChange={setCurrency}
             />
 
-            <div className="relative" ref={notificationRef}>
-              <button
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="relative p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all duration-200 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none"
-                aria-label="Notifications"
-              >
-                <Bell size={18} />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
-                )}
-              </button>
-
-              <NotificationDropdown
-                isOpen={showNotifications}
-                onClose={() => setShowNotifications(false)}
-                notifications={notifications}
-                onMarkAsRead={handleMarkAsRead}
-                onMarkAllAsRead={handleMarkAllAsRead}
-                onDelete={handleDeleteNotification}
-              />
-            </div>
-
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
@@ -157,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
 
               {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 z-50 animate-in slide-in-from-top-2 duration-200">
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 z-50 animate-slide-up duration-200">
                   <div className="p-4 border-b border-slate-100">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-semibold">

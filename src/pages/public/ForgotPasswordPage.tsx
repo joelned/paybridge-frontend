@@ -79,13 +79,13 @@ export const ForgotPasswordPage: React.FC = () => {
         </div>
 
         {error && (
-          <InlineAlert variant="error" icon={AlertCircle} className="bg-red-50 border-red-300 text-red-800">
+          <InlineAlert variant="error" icon={AlertCircle} className="mb-4 bg-red-50 border-red-300 text-red-800">
             {error}
           </InlineAlert>
         )}
 
         {success && (
-          <InlineAlert variant="success" icon={CheckCircle}>
+          <InlineAlert variant="success" icon={CheckCircle} className="mb-4">
             {success}
           </InlineAlert>
         )}

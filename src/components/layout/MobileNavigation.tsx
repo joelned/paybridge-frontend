@@ -4,7 +4,7 @@ import { useLocation } from 'react-router-dom';
 interface MobileNavItem {
   id: string;
   label: string;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
   path: string;
 }
 

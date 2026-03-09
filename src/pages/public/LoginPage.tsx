@@ -1,7 +1,7 @@
 // src/pages/public/LoginPage.tsx
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { AlertCircle, Mail, Lock, CheckCircle } from 'lucide-react';
+import { AlertCircle, Mail, Lock, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import paybridgeLogo from '../../assets/paybridge_logo.png';
 import { Button, Input, Card } from '../../components/common';
 import { InlineAlert } from '../../components/feedback/InlineAlert';
@@ -22,6 +22,7 @@ export const LoginPage: React.FC = () => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState(state?.message || '');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Use useLayoutEffect to prevent flash of login content if already authenticated
   useLayoutEffect(() => {
@@ -53,16 +54,18 @@ export const LoginPage: React.FC = () => {
 
       await login(formData.email, formData.password);
       // Navigation will be handled by the useLayoutEffect above
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Display the exact error message from backend
-      const errorMessage = err.message || 'Login failed. Please check your credentials.';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Login failed. Please check your credentials.';
       setError(errorMessage);
 
       // Handle specific cases for better UX
       if (errorMessage.toLowerCase().includes('verify') ||
         errorMessage.toLowerCase().includes('verification')) {
+        sessionStorage.setItem('paybridge:pendingVerificationEmail', formData.email);
         setTimeout(() => {
-          navigate('/verify-email', {
+          navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`, {
             state: { email: formData.email }
           });
         }, 3000);
@@ -93,13 +96,12 @@ export const LoginPage: React.FC = () => {
       >
         {/* Header */}
         <div className="text-center mb-8">
-          <img src={paybridgeLogo} alt="PayBridge" className="w-16 h-16 mb-4 mx-auto" />
+          <img src={paybridgeLogo} alt="PayBridge" className="w-44 h-auto mb-4 mx-auto object-contain" />
           <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 via-blue-800 to-indigo-800 bg-clip-text text-transparent mb-2">
             Welcome Back
           </h1>
           <p className="text-slate-600">Sign in to your PayBridge account</p>
         </div>
-
         {/* Success message */}
         {successMessage && (
           <InlineAlert variant="success" icon={CheckCircle} className="mb-6">
@@ -135,7 +137,7 @@ export const LoginPage: React.FC = () => {
 
           <Input
             label="Password"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             name="password"
             id="password"
             value={formData.password}
@@ -145,6 +147,18 @@ export const LoginPage: React.FC = () => {
             disabled={loading}
             autoComplete="current-password"
             icon={Lock}
+            endAdornment={(
+              <button
+                type="button"
+                onClick={() => setShowPassword((previous) => !previous)}
+                className="text-slate-500 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 rounded-md p-1 transition-colors"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                title={showPassword ? 'Hide password' : 'Show password'}
+                disabled={loading}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            )}
             error={error && error.toLowerCase().includes('password') ? 'Please check your password' : undefined}
           />
 

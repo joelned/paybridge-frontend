@@ -7,7 +7,7 @@ interface StatCardProps {
   value: string | number;
   change?: number | string;
   trend?: 'up' | 'down' | 'neutral';
-  icon?: React.ComponentType<any>;
+  icon?: React.ComponentType<{ className?: string }>;
   color?: 'primary' | 'success' | 'warning' | 'danger' | 'info';
   className?: string;
   loading?: boolean;

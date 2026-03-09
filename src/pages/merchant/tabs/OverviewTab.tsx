@@ -110,8 +110,8 @@ export const OverviewTab: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Integration Readiness</h1>
-        <p className="text-sm text-slate-600 mt-1">
+        <h1 className="ui-page-title">Integration Readiness</h1>
+        <p className="ui-page-subtitle mt-1">
           PayBridge helps you integrate once, then route payments across providers.
         </p>
       </div>
@@ -124,7 +124,7 @@ export const OverviewTab: React.FC = () => {
 
       <Card className="p-6">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <h2 className="text-lg font-semibold text-slate-900">Setup Checklist</h2>
+          <h2 className="ui-section-title">Setup Checklist</h2>
           <span className="text-sm font-medium px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
             {completedCount}/4 complete
           </span>
@@ -142,7 +142,7 @@ export const OverviewTab: React.FC = () => {
                   </div>
                   <div>
                     <p className="font-semibold text-slate-900">{item.title}</p>
-                    <p className="text-sm text-slate-600 mt-1">{item.description}</p>
+                    <p className="ui-page-subtitle mt-1">{item.description}</p>
                   </div>
                 </div>
 
@@ -165,7 +165,7 @@ export const OverviewTab: React.FC = () => {
             </div>
             <div>
               <h2 className="font-semibold text-slate-900">For Merchants</h2>
-              <p className="text-sm text-slate-600 mt-1">
+              <p className="ui-page-subtitle mt-1">
                 Use this dashboard to connect providers and manage keys. Your developer handles code integration.
               </p>
             </div>
@@ -179,7 +179,7 @@ export const OverviewTab: React.FC = () => {
             </div>
             <div>
               <h2 className="font-semibold text-slate-900">Go-live Path</h2>
-              <p className="text-sm text-slate-600 mt-1">
+              <p className="ui-page-subtitle mt-1">
                 Connect a provider, test with test key, then switch to live key when your checkout is ready.
               </p>
             </div>
@@ -193,7 +193,7 @@ export const OverviewTab: React.FC = () => {
             </div>
             <div>
               <h2 className="font-semibold text-slate-900">Provider Routing</h2>
-              <p className="text-sm text-slate-600 mt-1">
+              <p className="ui-page-subtitle mt-1">
                 Your backend can choose a provider per payment request, or rely on configured default behavior.
               </p>
             </div>
@@ -207,7 +207,7 @@ export const OverviewTab: React.FC = () => {
             </div>
             <div>
               <h2 className="font-semibold text-slate-900">Key Security</h2>
-              <p className="text-sm text-slate-600 mt-1">
+              <p className="ui-page-subtitle mt-1">
                 API keys are shown once for security. Rotate immediately if you suspect exposure.
               </p>
             </div>

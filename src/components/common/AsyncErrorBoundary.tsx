@@ -1,10 +1,11 @@
 import React, { Component, ReactNode } from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
+import { Button } from './Button';
 
 interface Props {
   children: ReactNode;
   fallback?: (error: Error, retry: () => void) => ReactNode;
-  onError?: (error: Error, errorInfo: any) => void;
+  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
 }
 
 interface State {
@@ -22,7 +23,7 @@ export class AsyncErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: any) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('AsyncErrorBoundary caught an error:', error, errorInfo);
     this.props.onError?.(error, errorInfo);
   }
@@ -49,13 +50,14 @@ export class AsyncErrorBoundary extends Component<Props, State> {
                 {this.state.error.message || 'An unexpected error occurred'}
               </p>
             </div>
-            <button
+            <Button
               onClick={this.retry}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              variant="danger"
+              size="sm"
+              icon={RefreshCw}
             >
-              <RefreshCw size={16} />
               Try Again
-            </button>
+            </Button>
           </div>
         </div>
       );

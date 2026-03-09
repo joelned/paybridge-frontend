@@ -3,7 +3,7 @@ export interface ValidationResult {
   errors: string[];
 }
 
-export const validateProviderConfig = (type: string, config: Record<string, any>): ValidationResult => {
+export const validateProviderConfig = (type: string, config: Record<string, unknown>): ValidationResult => {
   const errors: string[] = [];
 
   switch (type.toLowerCase()) {

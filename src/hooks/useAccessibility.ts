@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import { FocusScope } from '@react-aria/focus';
 
 export const useAnnouncement = () => {
   const announce = (message: string, priority: 'polite' | 'assertive' = 'polite') => {
@@ -44,6 +43,8 @@ export const useFocusManagement = () => {
 export const useKeyboardNavigation = (onEscape?: () => void, onEnter?: () => void) => {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+
       switch (event.key) {
         case 'Escape':
           if (onEscape) {
@@ -52,7 +53,9 @@ export const useKeyboardNavigation = (onEscape?: () => void, onEnter?: () => voi
           }
           break;
         case 'Enter':
-          if (onEnter && event.target === document.activeElement) {
+          // Only trigger custom Enter handlers for elements that explicitly opt in.
+          // This prevents globally hijacking native Enter behavior.
+          if (onEnter && target?.dataset.keyboardEnter === 'true') {
             event.preventDefault();
             onEnter();
           }

@@ -147,10 +147,12 @@ export const truncateText = (text: string, maxLength: number): string => {
 };
 
 // Format API error messages
-export const formatErrorMessage = (error: any): string => {
+export const formatErrorMessage = (error: unknown): string => {
   if (typeof error === 'string') return error;
-  if (error?.message) return error.message;
-  if (error?.error) return error.error;
+  if (typeof error === 'object' && error !== null) {
+    if ('message' in error && typeof error.message === 'string') return error.message;
+    if ('error' in error && typeof error.error === 'string') return error.error;
+  }
   return 'An unexpected error occurred';
 };
 

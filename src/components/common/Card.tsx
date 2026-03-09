@@ -1,5 +1,6 @@
 // src/components/common/Card.tsx
 import React from 'react';
+import { cn } from '../../utils/cn';
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   hover?: boolean;
@@ -9,10 +10,6 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
 }
 
-function cn(...classes: Array<string | undefined | false>): string {
-  return classes.filter(Boolean).join(' ');
-}
-
 export const Card: React.FC<CardProps> = ({
   children,
   hover = false,
@@ -20,15 +17,17 @@ export const Card: React.FC<CardProps> = ({
   padding = 'md',
   interactive = false,
   className = '',
+  onClick,
+  onKeyDown,
+  role,
+  tabIndex,
   ...props
 }) => {
-  const baseStyles = 'rounded-xl transition-all duration-200';
-  
   const variants = {
-    default: 'bg-white border border-slate-200 shadow-sm',
-    elevated: 'bg-white border border-slate-200 shadow-lg',
-    outlined: 'bg-white border border-slate-300 shadow-none',
-    soft: 'bg-slate-50 border border-slate-200 shadow-sm'
+    default: 'ui-card-default',
+    elevated: 'ui-card-elevated',
+    outlined: 'ui-card-outlined',
+    soft: 'ui-card-soft',
   };
 
   const paddingStyles = {
@@ -38,16 +37,35 @@ export const Card: React.FC<CardProps> = ({
     lg: 'p-6'
   };
 
+  const isInteractive = interactive || typeof onClick === 'function';
+
   const interactionStyles = cn(
-    interactive && 'cursor-pointer hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 active:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:ring-offset-2',
-    !interactive && hover && 'hover:shadow-lg hover:-translate-y-0.5 cursor-pointer',
+    hover && 'ui-card-hover',
+    isInteractive && 'ui-card-interactive focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:ring-offset-2',
   );
 
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    onKeyDown?.(event);
+
+    if (!isInteractive || !onClick || event.defaultPrevented) {
+      return;
+    }
+
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onClick(event as unknown as React.MouseEvent<HTMLDivElement>);
+    }
+  };
+
   return (
-    <div 
-      {...props} 
+    <div
+      {...props}
+      onClick={onClick}
+      onKeyDown={handleKeyDown}
+      role={role ?? (isInteractive ? 'button' : undefined)}
+      tabIndex={tabIndex ?? (isInteractive ? 0 : undefined)}
       className={cn(
-        baseStyles,
+        'ui-card',
         variants[variant as keyof typeof variants],
         paddingStyles[padding as keyof typeof paddingStyles],
         interactionStyles,

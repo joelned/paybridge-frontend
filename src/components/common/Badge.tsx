@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '../../utils/cn';
 
 interface BadgeProps {
   children: React.ReactNode;
@@ -9,22 +10,22 @@ interface BadgeProps {
 
 export const Badge: React.FC<BadgeProps> = ({ children, variant = 'default', size = 'md', className = '' }) => {
   const variants = {
-    default: 'bg-gray-100 text-gray-800',
-    success: 'bg-success-50 text-success-700',
-    warning: 'bg-warning-50 text-warning-700',
-    danger: 'bg-error-50 text-error-700',
-    info: 'bg-primary-50 text-primary-700',
-    purple: 'bg-purple-50 text-purple-700'
+    default: 'ui-badge-default',
+    success: 'ui-badge-success',
+    warning: 'ui-badge-warning',
+    danger: 'ui-badge-danger',
+    info: 'ui-badge-info',
+    purple: 'ui-badge-info'
   };
 
   const sizes = {
-    sm: 'px-2 py-0.5 text-xs',
-    md: 'px-2.5 py-1 text-xs',
-    lg: 'px-3 py-1.5 text-sm'
+    sm: 'ui-badge-sm',
+    md: 'ui-badge-md',
+    lg: 'ui-badge-lg'
   };
   
   return (
-    <span className={`inline-flex items-center font-medium rounded-full ${variants[variant]} ${sizes[size]} ${className}`}>
+    <span className={cn('ui-badge', variants[variant], sizes[size], className)}>
       {children}
     </span>
   );

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { BarChart3, CheckCircle2, Clock3, Download, TrendingUp, XCircle } from 'lucide-react';
 import { Card } from '../../../components/common/Card';
 import { Button } from '../../../components/common/Button';
+import { ResponsiveDataTable, type Column } from '../../../components/common/ResponsiveDataTable';
 import { InlineAlert } from '../../../components/feedback/InlineAlert';
 import { useModalContext } from '../../../contexts/ModalContext';
 import { useCurrency } from '../../../contexts/CurrencyContext';
@@ -106,12 +107,61 @@ export const AnalyticsTab: React.FC = () => {
     return { latest, previous, direction: 'flat' as const };
   }, [data]);
 
+  const providerRows = useMemo(() => data?.providers ?? [], [data?.providers]);
+  const providerColumns = useMemo<Column<(typeof providerRows)[number]>[]>(
+    () => [
+      {
+        key: 'providerName',
+        header: 'Provider',
+        mobileLabel: 'Provider',
+        render: (_value, item) => (
+          <div>
+            <p className="font-semibold text-slate-900">{item.providerName}</p>
+            <p className="text-xs text-slate-600 mt-0.5">Code: {item.providerCode}</p>
+          </div>
+        ),
+      },
+      {
+        key: 'transactions',
+        header: 'Transactions',
+        mobileLabel: 'Transactions',
+        render: (_value, item) => <span className="font-semibold text-slate-900">{item.transactions}</span>,
+      },
+      {
+        key: 'successRate',
+        header: 'Success Rate',
+        mobileLabel: 'Success Rate',
+        render: (_value, item) => <span className="font-semibold text-emerald-700">{item.successRate}%</span>,
+      },
+      {
+        key: 'successfulTransactions',
+        header: 'Successful',
+        mobileLabel: 'Successful',
+        render: (_value, item) => <span className="text-slate-900">{item.successfulTransactions}</span>,
+      },
+      {
+        key: 'processedAmount',
+        header: 'Processed Amount',
+        mobileLabel: 'Processed Amount',
+        render: (_value, item) => (
+          <span className="font-semibold text-slate-900">
+            {formatAmount(
+              typeof effectiveRate === 'number' ? item.processedAmount * effectiveRate : item.processedAmount,
+              selectedCurrency.code || data?.primaryCurrency || 'N/A'
+            )}
+          </span>
+        ),
+      },
+    ],
+    [data?.primaryCurrency, effectiveRate, selectedCurrency.code]
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Analytics</h1>
-          <p className="text-sm text-slate-600 mt-1">
+          <h1 className="ui-page-title">Analytics</h1>
+          <p className="ui-page-subtitle mt-1">
             High-level performance across all your connected payment providers.
           </p>
         </div>
@@ -186,8 +236,8 @@ export const AnalyticsTab: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 p-6">
-          <h2 className="text-lg font-semibold text-slate-900">Revenue Summary</h2>
-          <p className="text-sm text-slate-600 mt-1">Processed amount and averages for the selected period.</p>
+          <h2 className="ui-section-title">Revenue Summary</h2>
+          <p className="ui-page-subtitle mt-1">Processed amount and averages for the selected period.</p>
 
           <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="rounded-xl border border-slate-200 p-4 bg-slate-50">
@@ -230,8 +280,8 @@ export const AnalyticsTab: React.FC = () => {
         </Card>
 
         <Card className="p-6">
-          <h2 className="text-lg font-semibold text-slate-900">Latest Trend</h2>
-          <p className="text-sm text-slate-600 mt-1">Compared to the previous day.</p>
+          <h2 className="ui-section-title">Latest Trend</h2>
+          <p className="ui-page-subtitle mt-1">Compared to the previous day.</p>
 
           <div className="mt-6 flex items-center gap-3">
             <div className={`p-2 rounded-lg ${trendSummary.direction === 'up' ? 'bg-emerald-100' : trendSummary.direction === 'down' ? 'bg-red-100' : 'bg-slate-100'}`}>
@@ -253,49 +303,16 @@ export const AnalyticsTab: React.FC = () => {
       </div>
 
       <Card className="p-6">
-        <h2 className="text-lg font-semibold text-slate-900 mb-4">Provider Performance</h2>
-
-        {isLoading ? (
-          <p className="text-sm text-slate-600">Loading provider analytics...</p>
-        ) : !data?.providers?.length ? (
-          <p className="text-sm text-slate-600">No provider activity in selected period.</p>
-        ) : (
-          <div className="space-y-3">
-            {data.providers.map((provider) => (
-              <div key={provider.providerCode} className="border border-slate-200 rounded-lg p-4">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-slate-900">{provider.providerName}</p>
-                    <p className="text-xs text-slate-600">Code: {provider.providerCode}</p>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <p className="text-slate-500 text-xs">Transactions</p>
-                      <p className="font-semibold text-slate-900">{provider.transactions}</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-500 text-xs">Success Rate</p>
-                      <p className="font-semibold text-emerald-700">{provider.successRate}%</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-500 text-xs">Successful</p>
-                      <p className="font-semibold text-slate-900">{provider.successfulTransactions}</p>
-                    </div>
-                    <div>
-                      <p className="text-slate-500 text-xs">Processed Amount</p>
-                      <p className="font-semibold text-slate-900">
-                        {formatAmount(
-                          typeof effectiveRate === 'number' ? provider.processedAmount * effectiveRate : provider.processedAmount,
-                          selectedCurrency.code || data.primaryCurrency || 'N/A'
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <h2 className="ui-section-title mb-4">Provider Performance</h2>
+        <ResponsiveDataTable
+          data={providerRows}
+          columns={providerColumns}
+          loading={isLoading}
+          error={error ? getErrorMessage(error) : undefined}
+          onRetry={() => refetch()}
+          emptyMessage="No provider activity in selected period."
+          keyExtractor={(item) => item.providerCode}
+        />
       </Card>
     </div>
   );

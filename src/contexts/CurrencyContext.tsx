@@ -68,6 +68,7 @@ export const CurrencyProvider: React.FC<CurrencyProviderProps> = ({ children }) 
       return new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: selectedCurrency.code,
+        currencyDisplay: 'narrowSymbol',
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }).format(amount);

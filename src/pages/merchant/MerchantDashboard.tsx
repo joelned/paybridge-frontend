@@ -163,7 +163,7 @@ export const MerchantDashboard = ({ userData, onLogout }: Props) => {
       <SkipLink />
       <LiveRegion message={`Current page: ${currentTabLabel}`} />
 
-      <div className="flex h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/10 overflow-hidden">
+      <div className="flex h-[100dvh] min-h-[100dvh] bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/10 overflow-hidden">
         <Sidebar
           activeTab={activeTab}
           setActiveTab={handleTabChange}
@@ -174,10 +174,10 @@ export const MerchantDashboard = ({ userData, onLogout }: Props) => {
           onLogout={onLogout}
         />
 
-        <main id="main-content" className="flex-1 overflow-hidden flex flex-col min-w-0" role="main" tabIndex={-1}>
+        <main id="main-content" className="flex-1 overflow-hidden flex flex-col min-w-0 min-h-0" role="main" tabIndex={-1}>
           <Header activeTab={activeTab} menuItems={MENU_ITEMS} userEmail={userData.email} userData={userData} onLogout={onLogout} />
 
-          <div className="flex-1 overflow-auto bg-transparent">
+          <div className="flex-1 min-h-0 overflow-auto bg-transparent">
             <div className="min-h-full">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
                 <div className="mb-8">

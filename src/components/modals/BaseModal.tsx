@@ -21,7 +21,27 @@ export const BaseModal: React.FC<BaseModalProps> = ({
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const wasOpenRef = useRef(false);
   const titleIdRef = useRef(`modal-title-${Math.random().toString(36).slice(2, 10)}`);
+
+  const lockBodyScroll = () => {
+    const currentLocks = Number(document.body.dataset.scrollLockCount || '0');
+    if (currentLocks === 0) {
+      document.body.classList.add('modal-open');
+    }
+    document.body.dataset.scrollLockCount = String(currentLocks + 1);
+  };
+
+  const unlockBodyScroll = () => {
+    const currentLocks = Number(document.body.dataset.scrollLockCount || '0');
+    const nextLocks = Math.max(0, currentLocks - 1);
+    if (nextLocks === 0) {
+      document.body.classList.remove('modal-open');
+      delete document.body.dataset.scrollLockCount;
+      return;
+    }
+    document.body.dataset.scrollLockCount = String(nextLocks);
+  };
 
   const sizeClasses = {
     sm: 'max-w-md',
@@ -32,15 +52,17 @@ export const BaseModal: React.FC<BaseModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      wasOpenRef.current = true;
       previousFocusRef.current = document.activeElement as HTMLElement;
-      document.body.classList.add('modal-open');
+      lockBodyScroll();
       modalRef.current?.focus();
-    } else {
-      document.body.classList.remove('modal-open');
-      previousFocusRef.current?.focus();
+      return () => unlockBodyScroll();
     }
 
-    return () => document.body.classList.remove('modal-open');
+    if (wasOpenRef.current) {
+      previousFocusRef.current?.focus();
+      wasOpenRef.current = false;
+    }
   }, [isOpen]);
 
   useEffect(() => {

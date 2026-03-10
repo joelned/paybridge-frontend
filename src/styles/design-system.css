@@ -150,6 +150,11 @@ body {
   line-height: var(--leading-normal);
 }
 
+body.modal-open {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 /* Semantic text utilities mapped to tokens */
 .ui-page-title {
   font-size: var(--text-2xl);

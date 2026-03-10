@@ -36,14 +36,10 @@ export const Header: React.FC<HeaderProps> = ({
 
     if (showUserMenu) {
       document.addEventListener('mousedown', handleClickOutside);
-      document.body.classList.add('modal-open');
-    } else {
-      document.body.classList.remove('modal-open');
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      document.body.classList.remove('modal-open');
     };
   }, [showUserMenu]);
 

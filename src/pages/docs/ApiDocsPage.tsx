@@ -17,7 +17,7 @@ export const ApiDocsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="h-screen w-full relative">
+      <div className="h-[100dvh] w-full relative">
         {isLoading && !hasError && (
           <div className="absolute inset-0 z-10 bg-slate-50/95 backdrop-blur-sm">
             <div className="max-w-4xl mx-auto p-6 pt-10 space-y-4">

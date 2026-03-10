@@ -97,9 +97,6 @@ export const ProvidersTab: React.FC = () => {
       render: (_value, item) => (
         <div>
           <p className="font-semibold text-slate-900">{item.providerName}</p>
-          <p className="text-xs text-slate-600 mt-0.5">
-            Code: {item.providerCode}
-          </p>
         </div>
       ),
     },

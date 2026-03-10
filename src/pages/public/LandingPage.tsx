@@ -1,6 +1,7 @@
 import React from 'react';
 import { GitMerge, Link2, BarChart3, Shield, Zap, ArrowRight, ServerCog } from 'lucide-react';
 import paybridgeLogo from '../../assets/paybridge_logo_compact.png';
+import paystackLogo from '../../assets/paystack_logo.webp';
 import { Button } from '../../components/common/Button';
 import { Card } from '../../components/common/Card';
 import { Container } from '../../components/layout/Container';
@@ -54,7 +55,8 @@ const providers = [
   {
     name: 'Paystack', 
     mark: 'P',
-    color: '#00C3F7' 
+    color: '#00C3F7',
+    logo: paystackLogo
   },
 ];
 
@@ -111,7 +113,15 @@ const providers = [
                   style={{ backgroundColor: provider.color }}
                   aria-hidden="true"
                 >
-                  {provider.mark}
+                  {provider.logo ? (
+                    <img
+                      src={provider.logo}
+                      alt={`${provider.name} logo`}
+                      className="w-5 h-5 sm:w-6 sm:h-6 object-contain"
+                    />
+                  ) : (
+                    provider.mark
+                  )}
                 </span>
                 <span className="font-medium text-gray-700 text-sm">{provider.name}</span>
               </div>

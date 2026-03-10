@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Card } from '../../../components/common/Card';
 import { AlertTriangle, Copy, KeyRound, RefreshCw, Save, Server, ShieldCheck, Trash2, Webhook, Workflow } from 'lucide-react';
 import { Button } from '../../../components/common/Button';
@@ -8,6 +8,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { InlineAlert } from '../../../components/feedback/InlineAlert';
 import { getErrorMessage } from '../../../utils/errorHandler';
 import { env } from '../../../config/env';
+import { useIsMobile } from '../../../hooks/useMediaQuery';
 
 const SAMPLE_REQUEST = `POST /api/v1/payments
 Host: api.paybridge.example
@@ -58,6 +59,8 @@ const DEVELOPER_HANDOFF = `Please integrate our server with PayBridge.
 export const PaymentsTab: React.FC = () => {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
+  const generatedKeyAlertRef = useRef<HTMLDivElement | null>(null);
   const [revealedKey, setRevealedKey] = useState<{ mode: 'TEST' | 'LIVE'; label: string; key: string } | null>(null);
   const [webhookSecretInput, setWebhookSecretInput] = useState<{ stripe: string; paystack: string }>({
     stripe: '',
@@ -152,6 +155,17 @@ export const PaymentsTab: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    if (!revealedKey || !isMobile) return;
+
+    requestAnimationFrame(() => {
+      generatedKeyAlertRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    });
+  }, [revealedKey, isMobile]);
+
   return (
     <div className="space-y-6">
       <div>
@@ -174,20 +188,22 @@ export const PaymentsTab: React.FC = () => {
       )}
 
       {revealedKey && (
-        <InlineAlert variant="warning" icon={AlertTriangle}>
-          <div className="space-y-3">
-            <p className="font-semibold">Key ready. Next: copy it now and save it in your backend secrets manager.</p>
-            <div className="rounded-lg bg-slate-900 text-slate-100 p-3 text-xs break-all">{revealedKey.key}</div>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" icon={Copy} onClick={() => copyText(revealedKey.key)}>
-                Copy Key
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => setRevealedKey(null)}>
-                Hide Key
-              </Button>
+        <div ref={generatedKeyAlertRef}>
+          <InlineAlert variant="warning" icon={AlertTriangle}>
+            <div className="space-y-3">
+              <p className="font-semibold">Key ready. Next: copy it now and save it in your backend secrets manager.</p>
+              <div className="rounded-lg bg-slate-900 text-slate-100 p-3 text-xs break-all">{revealedKey.key}</div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" icon={Copy} onClick={() => copyText(revealedKey.key)}>
+                  Copy Key
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setRevealedKey(null)}>
+                  Hide Key
+                </Button>
+              </div>
             </div>
-          </div>
-        </InlineAlert>
+          </InlineAlert>
+        </div>
       )}
 
       <Card className="p-6">

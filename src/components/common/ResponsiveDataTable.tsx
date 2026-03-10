@@ -56,11 +56,11 @@ const MobileCard = React.memo(<T extends object,>({
       tabIndex={onRowClick ? 0 : undefined}
     >
       {visibleColumns.map((column) => (
-        <div key={String(column.key)} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+        <div key={String(column.key)} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3 items-start py-2 border-b border-gray-100 last:border-b-0">
           <div className="text-sm font-medium text-gray-600 min-w-0 flex-1">
             {column.mobileLabel || column.header}
           </div>
-          <div className="text-sm text-gray-900 font-medium text-right ml-4">
+          <div className="text-sm text-gray-900 font-medium text-right min-w-0 break-words">
             {column.render
               ? column.render(item[column.key], item)
               : String(item[column.key] || '')

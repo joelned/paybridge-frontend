@@ -80,7 +80,7 @@ export const ProvidersTab: React.FC = () => {
 
     try {
       const result = await providerService.testProvider(configId);
-      setSuccessMessage(result.message || `Connection test passed for config #${configId}.`);
+      setSuccessMessage(result.message || 'Connection test passed successfully.');
       await refetch();
     } catch (err) {
       setError(getErrorMessage(err));
@@ -98,7 +98,7 @@ export const ProvidersTab: React.FC = () => {
         <div>
           <p className="font-semibold text-slate-900">{item.providerName}</p>
           <p className="text-xs text-slate-600 mt-0.5">
-            Code: {item.providerCode} · ID: {item.configId}
+            Code: {item.providerCode}
           </p>
         </div>
       ),

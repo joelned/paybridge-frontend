@@ -98,7 +98,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       
       {/* Toast Container */}
       <div 
-        className="fixed top-4 right-4 z-50 space-y-2 max-w-sm pointer-events-none"
+        className="fixed top-3 inset-x-3 sm:top-4 sm:right-4 sm:left-auto z-[1080] space-y-2 sm:max-w-sm pointer-events-none"
         aria-live="polite"
         aria-label="Notifications"
         role="region"
@@ -108,22 +108,22 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           return (
             <div
               key={toast.id}
-              className={`p-4 rounded-xl border shadow-lg animate-slide-in-right pointer-events-auto ${getColors(toast.type)}`}
+              className={`w-full max-w-full p-3 sm:p-4 rounded-xl border shadow-lg animate-slide-in-right pointer-events-auto ${getColors(toast.type)}`}
               style={{ zIndex: 50 - index }} // Ensure proper stacking
               role="alert"
               aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
             >
-              <div className="flex items-start gap-3">
-                <Icon size={20} className="flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <div className="flex items-start gap-2.5 sm:gap-3">
+                <Icon size={18} className="flex-shrink-0 mt-0.5 sm:mt-0" aria-hidden="true" />
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm">{toast.title}</p>
+                  <p className="font-semibold text-sm break-words">{toast.title}</p>
                   {toast.message && (
-                    <p className="text-sm mt-1 opacity-90">{toast.message}</p>
+                    <p className="text-xs sm:text-sm mt-1 opacity-90 break-words leading-relaxed">{toast.message}</p>
                   )}
                 </div>
                 <button
                   onClick={() => removeToast(toast.id)}
-                  className="flex-shrink-0 p-1 hover:bg-black/10 rounded-lg transition-colors"
+                  className="flex-shrink-0 p-1.5 min-h-[32px] min-w-[32px] hover:bg-black/10 rounded-lg transition-colors"
                   aria-label={`Dismiss ${toast.title} notification`}
                 >
                   <X size={16} aria-hidden="true" />

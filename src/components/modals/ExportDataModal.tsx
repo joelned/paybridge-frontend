@@ -10,7 +10,7 @@ interface ExportDataModalProps {
   loading?: boolean;
 }
 
-interface ExportConfig {
+export interface ExportConfig {
   format: 'csv' | 'pdf';
   dateRange: string;
   dataType: string;

@@ -1,7 +1,5 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { PerformanceProvider } from './contexts/PerformanceContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ModalContextProvider } from './contexts/ModalContext';
@@ -22,25 +20,6 @@ const AdminDashboard = React.lazy(() => import('./pages/admin/AdminDashboard').t
 const LandingPage = React.lazy(() => import('./pages/public/LandingPage').then(m => ({ default: m.LandingPage })));
 const ApiDocsPage = React.lazy(() => import('./pages/docs/ApiDocsPage').then(m => ({ default: m.ApiDocsPage })));
 
-// Optimized query client
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
-      retry: (failureCount, error: unknown) => {
-        const status =
-          typeof error === 'object' && error !== null && 'status' in error
-            ? Number((error as { status?: unknown }).status)
-            : undefined;
-        if (status === 404) return false;
-        return failureCount < 3;
-      },
-      refetchOnWindowFocus: false,
-    },
-  },
-});
-
 // Performance-optimized loading fallback
 const PageLoadingFallback = React.memo(() => (
   <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/10">
@@ -59,26 +38,21 @@ function App() {
 
   return (
     <PerformanceProvider>
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <ModalContextProvider>
-            <ModalProvider>
-              <CurrencyProvider>
-                <AuthProvider>
-                  <Router>
-                    <Suspense fallback={<PageLoadingFallback />}>
-                      <AppRoutes />
-                    </Suspense>
-                  </Router>
-                </AuthProvider>
-              </CurrencyProvider>
-            </ModalProvider>
-          </ModalContextProvider>
-        </ToastProvider>
-        {import.meta.env.DEV && (
-          <ReactQueryDevtools initialIsOpen={false} />
-        )}
-      </QueryClientProvider>
+      <ToastProvider>
+        <ModalContextProvider>
+          <ModalProvider>
+            <CurrencyProvider>
+              <AuthProvider>
+                <Router>
+                  <Suspense fallback={<PageLoadingFallback />}>
+                    <AppRoutes />
+                  </Suspense>
+                </Router>
+              </AuthProvider>
+            </CurrencyProvider>
+          </ModalProvider>
+        </ModalContextProvider>
+      </ToastProvider>
     </PerformanceProvider>
   );
 }

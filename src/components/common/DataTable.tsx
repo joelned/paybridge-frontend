@@ -13,6 +13,7 @@ interface Props<T> {
   loading?: boolean;
   emptyMessage?: string;
   className?: string;
+  keyExtractor: (row: T, index: number) => React.Key;
 }
 
 export const DataTable = <T extends object>({
@@ -20,7 +21,8 @@ export const DataTable = <T extends object>({
   data,
   loading = false,
   emptyMessage = 'No data available',
-  className = ''
+  className = '',
+  keyExtractor
 }: Props<T>) => {
   if (loading) {
     return <LoadingSkeleton variant="table" rows={5} className={className} />;
@@ -52,7 +54,7 @@ export const DataTable = <T extends object>({
           </thead>
           <tbody className="divide-y divide-slate-200">
             {data.map((row, index) => (
-              <tr key={index} className="hover:bg-slate-50 transition-colors">
+              <tr key={keyExtractor(row, index)} className="hover:bg-slate-50 transition-colors">
                 {columns.map((column) => (
                   <td key={String(column.key)} className="px-6 py-4 text-sm text-slate-900">
                     {column.render ? column.render(row[column.key], row) : String(row[column.key])}

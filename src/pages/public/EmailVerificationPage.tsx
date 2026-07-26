@@ -65,9 +65,13 @@ export const EmailVerificationPage: React.FC = () => {
     return () => clearInterval(timer);
   }, [resendCooldown]);
 
+  const focusFirstDigit = () => inputRefs.current[0]?.focus();
+
   useEffect(() => {
     if (!email) return;
-    inputRefs.current[0]?.focus();
+    focusFirstDigit();
+    // Only re-run when the target email changes, not on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [email]);
 
   const handleChange = (index: number, value: string) => {
@@ -158,7 +162,7 @@ export const EmailVerificationPage: React.FC = () => {
       }
 
       setCode(['', '', '', '', '', '']);
-      inputRefs.current[0]?.focus();
+      focusFirstDigit();
     } finally {
       setLoading(false);
     }
@@ -181,7 +185,7 @@ export const EmailVerificationPage: React.FC = () => {
       setTimeRemaining(900);
       setCode(['', '', '', '', '', '']);
       setSuccessMessage('New code sent. Next: enter the latest code from your inbox.');
-      inputRefs.current[0]?.focus();
+      focusFirstDigit();
     } catch (err: unknown) {
       setError(getErrorMessage(err) || 'Unable to resend code. Try again.');
     } finally {

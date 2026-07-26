@@ -47,7 +47,22 @@ class FxService {
     }
 
     // Use a public rates endpoint so no credential is shipped in browser bundles.
-    const response = await fetch(`https://open.er-api.com/v6/latest/${base}`);
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 8000);
+
+    let response: Response;
+    try {
+      response = await fetch(`https://open.er-api.com/v6/latest/${base}`, {
+        signal: controller.signal,
+      });
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        throw new Error('Timed out while fetching FX rates.');
+      }
+      throw err;
+    } finally {
+      window.clearTimeout(timeout);
+    }
 
     if (!response.ok) {
       throw new Error(`Unable to fetch FX rates (${response.status}).`);

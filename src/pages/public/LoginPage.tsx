@@ -10,7 +10,7 @@ import { useAuth } from '../../contexts/AuthContext';
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const state = location.state as { message?: string; email?: string };
+  const state = location.state as { message?: string; email?: string; from?: { pathname?: string } };
   const { login, user, isAuthenticated } = useAuth();
 
   // Initialize email from state or localStorage (Remember Me)
@@ -27,9 +27,12 @@ export const LoginPage: React.FC = () => {
   // Use useLayoutEffect to prevent flash of login content if already authenticated
   useLayoutEffect(() => {
     if (isAuthenticated && user) {
-      const target = user.userType === 'ADMIN' ? '/admin/overview' : '/merchant/overview';
+      const rolePrefix = user.userType === 'ADMIN' ? '/admin' : '/merchant';
+      const from = state?.from?.pathname;
+      const target = from && from.startsWith(rolePrefix) ? from : `${rolePrefix}/overview`;
       navigate(target, { replace: true });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, user, navigate]);
 
   useEffect(() => {
